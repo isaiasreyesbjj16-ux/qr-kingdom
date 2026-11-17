@@ -472,6 +472,21 @@ function buildQrText(o){
 }
 
 /* ---------- dibujar QR ---------- */
+function drawQr(box,text,targetPx){
+  box.innerHTML='';
+  const tmp=document.createElement('div');
+  const qr=new QRCode(tmp,{text:text,width:1,height:1,correctLevel:QRCode.CorrectLevel.M});
+  const q=qr._oQRCode, n=q.getModuleCount(), quiet=4;
+  const cell=Math.max(3,Math.floor(targetPx/(n+2*quiet)));
+  const canvas=document.createElement('canvas');
+  canvas.width=(n+2*quiet)*cell; canvas.height=canvas.width;
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle='#0f172a';
+  for(let r=0;r<n;r++) for(let c=0;c<n;c++) if(q.isDark(r,c)) ctx.fillRect((c+quiet)*cell,(r+quiet)*cell,cell,cell);
+  box.appendChild(canvas);
+  return qr;
+}
 function renderQR(){
   const o=collect();
   const txt=buildQrText(o);
@@ -480,7 +495,7 @@ function renderQR(){
   $('#qrId').textContent='ID: '+(o.id||'—');
   const box=$('#qr'); box.innerHTML='';
   try{
-    qrInstance = new QRCode(box,{text:txt,width:220,height:220,colorDark:'#0f172a',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+    qrInstance = drawQr(box,txt,360);
   }catch(e){
     qrInstance = null;
     box.innerHTML='<div style="font-size:11px;color:#b91c1c;padding:10px">QR demasiado largo: acortá alergias o medicamentos.</div>';
@@ -812,7 +827,7 @@ function renderLinkQr(){
     return;
   }
   try{
-    linkQrInstance=new QRCode(box,{text:url,width:180,height:180,colorDark:'#0f172a',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+    linkQrInstance=drawQr(box,url,260);
   }catch(e){
     box.innerHTML='<div class="empty">La URL es demasiado larga.</div>';
   }
