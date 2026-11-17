@@ -1,0 +1,897 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ficha Médica + Código QR</title>
+<style>
+  :root{
+    --bg:#eef2f7; --card:#fff; --ink:#0f172a; --muted:#64748b; --line:#dbe3ee;
+    --brand:#0e7490; --brand2:#0891b2; --danger:#dc2626; --ok:#059669; --warn:#d97706;
+    --shadow:0 6px 22px rgba(15,23,42,.08);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--bg)}
+  button,input,select,textarea{font:inherit}
+  button{cursor:pointer}
+  .topbar{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--line);padding:10px 18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;box-shadow:0 2px 10px rgba(15,23,42,.04)}
+  .logo{display:flex;align-items:center;gap:10px;margin-right:auto}
+  .logo .mark{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;display:grid;place-items:center;font-weight:800;font-size:19px}
+  .logo h1{font-size:16px;margin:0;letter-spacing:.2px}
+  .logo small{display:block;color:var(--muted);font-size:11px}
+  .idpill{background:#e0f2fe;color:#075985;border:1px solid #bae6fd;border-radius:999px;padding:4px 10px;font-weight:700;font-size:12px}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 12px;font-weight:600;color:#334155;display:inline-flex;align-items:center;gap:6px}
+  .btn:hover{border-color:#94a3b8;background:#f8fafc}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  .btn.primary:hover{background:#0c6479}
+  .btn.danger{color:var(--danger);border-color:#fecaca}
+  .btn.sm{padding:5px 9px;font-size:12px}
+  .layout{display:grid;grid-template-columns:250px minmax(420px,1fr) 300px;gap:16px;padding:16px;align-items:start}
+  @media(max-width:1150px){.layout{grid-template-columns:220px 1fr}.right{grid-column:1/-1;position:static!important}}
+  @media(max-width:780px){.layout{grid-template-columns:1fr}.side{order:2}.main{order:1}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
+  .side,.right{position:sticky;top:68px}
+  .side{padding:14px;max-height:calc(100vh - 86px);overflow:auto}
+  .side h2,.right h2{font-size:13px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin:0 0 10px}
+  .folderbox{background:#f1f5f9;border:1px dashed #cbd5e1;border-radius:9px;padding:9px;font-size:12px;color:var(--muted);margin-bottom:12px;word-break:break-all}
+  .folderbox b{color:var(--ink)}
+  .search{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:10px}
+  .plist{display:flex;flex-direction:column;gap:7px}
+  .pitem{border:1px solid var(--line);border-radius:9px;padding:8px 9px;background:#fff;cursor:pointer}
+  .pitem:hover{border-color:var(--brand2);background:#f0f9ff}
+  .pitem.active{border-color:var(--brand);background:#ecfeff}
+  .pitem .nm{font-weight:700;font-size:13px;display:flex;justify-content:space-between;gap:6px}
+  .pitem .meta{font-size:11px;color:var(--muted);margin-top:2px}
+  .badge{font-size:10px;font-weight:800;border-radius:999px;padding:2px 6px;background:#e2e8f0;color:#475569}
+  .badge.blood{background:#fee2e2;color:#b91c1c}
+  .badge.alert{background:#fef3c7;color:#92400e}
+  .empty{color:var(--muted);font-size:12px;text-align:center;padding:18px 6px}
+  .main{padding:16px 18px 26px;min-width:0}
+  .formhead{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px;flex-wrap:wrap}
+  .formhead h2{margin:0;font-size:19px}
+  .formhead p{margin:3px 0 0;color:var(--muted);font-size:12px}
+  details{border:1px solid var(--line);border-radius:10px;margin-bottom:10px;overflow:hidden;background:#fff}
+  details>summary{cursor:pointer;padding:10px 13px;font-weight:700;font-size:13px;background:#f8fafc;list-style:none;display:flex;align-items:center;gap:9px}
+  details>summary::-webkit-details-marker{display:none}
+  details>summary:before{content:"▸";color:var(--brand);font-size:12px;transition:transform .15s}
+  details[open]>summary:before{transform:rotate(90deg)}
+  details>summary .num{background:#e0f2fe;color:#075985;border-radius:6px;padding:1px 7px;font-size:11px}
+  .sec{padding:13px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+  .f{display:flex;flex-direction:column;gap:4px;min-width:0}
+  .f.wide{grid-column:1/-1}
+  label{font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.3px}
+  input,select,textarea{width:100%;border:1px solid #cbd5e1;border-radius:7px;padding:7px 9px;background:#fff;color:var(--ink)}
+  input:focus,select:focus,textarea:focus{outline:2px solid #99e6f5;border-color:var(--brand2)}
+  textarea{resize:vertical;min-height:58px}
+  .checks{display:flex;flex-wrap:wrap;gap:7px}
+  .chk{display:inline-flex;align-items:center;gap:6px;border:1px solid #cbd5e1;border-radius:7px;padding:6px 9px;background:#fff;font-size:12px;font-weight:600;color:#475569;cursor:pointer;text-transform:none;letter-spacing:0}
+  .chk:has(input:checked){background:#ecfeff;border-color:var(--brand2);color:#075985}
+  .chk input{width:auto;margin:0}
+  .rowbox{border:1px solid var(--line);border-radius:8px;padding:9px;margin-bottom:8px;background:#f8fafc}
+  .rowbox .rowhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+  .rowbox .rowhead b{font-size:12px;color:var(--muted)}
+  .link{color:var(--danger);background:none;border:0;font-size:12px;font-weight:700}
+  .hint{font-size:11px;color:var(--muted);margin:6px 0 0}
+  .right{padding:14px;text-align:center}
+  #qr{width:220px;height:220px;margin:10px auto;display:grid;place-items:center;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px;min-height:220px}
+  #qr canvas,#qr img{width:100%!important;height:auto!important;image-rendering:pixelated}
+  .qrname{font-weight:800;font-size:15px;margin:6px 0 2px;word-break:break-word}
+  .qrid{font-size:12px;color:var(--muted);margin-bottom:12px}
+  .qrtext{width:100%;height:130px;font:11px/1.35 ui-monospace,Consolas,monospace;background:#0f172a;color:#a7f3d0;border-color:#334155}
+  .right .btn{width:100%;justify-content:center;margin-top:7px}
+  .note{background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:8px;padding:8px;font-size:11px;text-align:left;margin-top:10px}
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:10px 16px;border-radius:9px;box-shadow:var(--shadow);z-index:50;font-size:13px;opacity:0;pointer-events:none;transition:.2s}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+  .modal{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;place-items:center;z-index:40;padding:18px}
+  .modal.open{display:grid}
+  .modal .sheet{background:#fff;border-radius:14px;max-width:780px;width:100%;max-height:88vh;overflow:auto;padding:22px}
+  .sheet h2{margin:0 0 2px}
+  .sheet .sub{color:var(--muted);font-size:12px;margin-bottom:16px}
+  .sheet h3{font-size:12px;text-transform:uppercase;letter-spacing:.7px;color:var(--brand);border-bottom:1px solid var(--line);padding-bottom:4px;margin:18px 0 8px}
+  .kv{display:grid;grid-template-columns:160px 1fr;gap:5px 12px;font-size:13px}
+  .kv dt{color:var(--muted)}
+  .kv dd{margin:0;font-weight:600;word-break:break-word}
+  .alertbox{background:#fef2f2;border:1px solid #fecaca;border-radius:9px;padding:10px;margin:10px 0;font-size:13px}
+  @media print{
+    .topbar,.side,.right,.modal,.rowbox .link,.btn{display:none!important}
+    .layout{display:block;padding:0}
+    .main{padding:0}
+    details{border:0;margin:0 0 10px}
+    details>summary{background:#eef2f7!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    input,select,textarea{border:0;border-bottom:1px solid #ccc;background:transparent}
+    body{background:#fff}
+  }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="logo">
+    <div class="mark">✚</div>
+    <div><h1>Ficha Médica + QR</h1><small>Datos esenciales en el QR · ficha completa guardada por persona</small></div>
+  </div>
+  <span class="idpill" id="idPill">ID: —</span>
+  <button class="btn" id="btnNew">＋ Nueva ficha</button>
+  <button class="btn" id="btnFolder">📁 Elegir carpeta</button>
+  <button class="btn primary" id="btnSave">💾 Guardar ficha</button>
+  <button class="btn" id="btnView">👁 Ver ficha</button>
+</header>
+
+<div class="layout">
+  <aside class="card side">
+    <h2>Fichas guardadas</h2>
+    <div class="folderbox" id="folderBox">Carpeta: <b>no seleccionada</b><br>Cuando elijas una carpeta, los archivos se guardan ahí.</div>
+    <input class="search" id="search" placeholder="Buscar por nombre, ID o sangre…">
+    <div class="plist" id="plist"></div>
+    <button class="btn sm" id="btnRefresh" style="width:100%;margin-top:10px">↻ Recargar desde carpeta</button>
+  </aside>
+
+  <main class="card main">
+    <form id="ficha" autocomplete="on">
+      <div class="formhead">
+        <div><h2>Ficha médica</h2><p>Completá todos los datos que apliquen. El QR se actualiza automáticamente.</p></div>
+        <span class="badge" id="saveState">Borrador local</span>
+      </div>
+
+      <details open>
+        <summary><span class="num">1</span> Identificación</summary>
+        <div class="sec grid">
+          <div class="f wide"><label>Nombre y apellido *</label><input name="nombre" id="nombre" placeholder="Ej. Juan Pérez" required></div>
+          <div class="f"><label>Fecha de nacimiento</label><input type="date" name="fechaNac" id="fechaNac"></div>
+          <div class="f"><label>Edad</label><input id="edad" disabled placeholder="se calcula sola"></div>
+          <div class="f"><label>Sexo</label><select name="sexo"><option value="">—</option><option>Femenino</option><option>Masculino</option><option>Otro</option><option>Prefiere no decirlo</option></select></div>
+          <div class="f"><label>Tipo de documento</label><select name="docTipo"><option value="">—</option><option>DNI</option><option>Cédula</option><option>Pasaporte</option><option>RUT</option><option>Otro</option></select></div>
+          <div class="f"><label>Número de documento</label><input name="docNumero"></div>
+          <div class="f"><label>Nacionalidad</label><input name="nacionalidad"></div>
+          <div class="f"><label>Ocupación</label><input name="ocupacion"></div>
+          <div class="f"><label>Teléfono</label><input name="telefono" type="tel"></div>
+          <div class="f"><label>Email</label><input name="email" type="email"></div>
+          <div class="f wide"><label>Dirección</label><input name="direccion"></div>
+        </div>
+      </details>
+
+      <details open>
+        <summary><span class="num">2</span> Grupo sanguíneo y datos físicos</summary>
+        <div class="sec grid">
+          <div class="f"><label>Grupo sanguíneo</label><select name="sangreGrupo"><option value="">No lo sé</option><option>A</option><option>B</option><option>AB</option><option>O</option></select></div>
+          <div class="f"><label>Factor Rh</label><select name="sangreRh"><option value="">No lo sé</option><option value="+">Positivo (+)</option><option value="-">Negativo (−)</option></select></div>
+          <div class="f"><label>Donante de órganos</label><select name="donante"><option value="">No consta</option><option>Sí</option><option>No</option></select></div>
+          <div class="f"><label>Altura (cm)</label><input name="altura" type="number" min="30" max="250"></div>
+          <div class="f"><label>Peso (kg)</label><input name="peso" type="number" min="1" max="400" step="0.1"></div>
+          <div class="f wide"><label>Observaciones sobre la sangre (fenotipo, anticuerpos, transfusiones, etc.)</label><input name="sangreNotas"></div>
+        </div>
+      </details>
+
+      <details open>
+        <summary><span class="num">3</span> Contacto de emergencia</summary>
+        <div class="sec grid">
+          <div class="f"><label>Nombre completo</label><input name="contactoNombre"></div>
+          <div class="f"><label>Relación / parentesco</label><input name="contactoRel" placeholder="Madre, esposo, hermana…"></div>
+          <div class="f"><label>Teléfono principal</label><input name="contactoTel" type="tel"></div>
+          <div class="f"><label>Teléfono alternativo</label><input name="contactoTel2" type="tel"></div>
+          <div class="f wide"><label>Email</label><input name="contactoEmail" type="email"></div>
+        </div>
+      </details>
+
+      <details open>
+        <summary><span class="num">4</span> ⚠ Alergias</summary>
+        <div class="sec grid">
+          <div class="f"><label>Medicamentos</label><input name="alerg_meds" placeholder="Ej. Penicilina, ibuprofeno"></div>
+          <div class="f"><label>Alimentos</label><input name="alerg_foods" placeholder="Ej. Maní, mariscos, lactosa"></div>
+          <div class="f"><label>Insectos / animales</label><input name="alerg_insects" placeholder="Ej. Abejas, gatos"></div>
+          <div class="f"><label>Ambientales</label><input name="alerg_env" placeholder="Ej. Polen, ácaros, moho"></div>
+          <div class="f"><label>Látex</label><select name="alerg_latex"><option value="">—</option><option>Sí</option><option>No</option><option>No lo sé</option></select></div>
+          <div class="f"><label>Gravedad</label><select name="alerg_severity"><option value="">No especificada</option><option>Leve</option><option>Moderada</option><option>Grave</option><option>Anafilaxia / riesgo vital</option></select></div>
+          <div class="f"><label>Otras alergias</label><input name="alerg_other"></div>
+          <div class="f wide"><label>Reacción observada / qué hacer</label><textarea name="alerg_reaction" placeholder="Ej. Erupción y dificultad para respirar. Usar epinefrina y llamar al 112."></textarea></div>
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="num">5</span> Enfermedades / condiciones crónicas</summary>
+        <div class="sec">
+          <div class="checks">
+            <label class="chk"><input type="checkbox" name="condiciones" value="Diabetes"> Diabetes</label>
+            <label class="chk"><input type="checkbox" name="condiciones" value="Hipertensión"> Hipertensión</label>
+            <label class="chk"><input type="checkbox" name="condiciones" value="Asma / EPOC"> Asma / EPOC</label>
+            <label class="chk"><input type="checkbox" name="condiciones" value="Cardiopatía"> Cardiopatía</label>
+            <label class="chk"><input type="checkbox" name="condiciones" value="Epilepsia"> Epilepsia</label>
+            <label class="chk"><input type="checkbox" name="condiciones" value="Cáncer"> Cáncer</label>
+            <label class="chk"><input type="checkbox" name="condiciones" value="Artritis"> Artritis</label>
+            <label class="chk"><input type="checkbox" name="condiciones" value="Tiroides"> Tiroides</label>
+            <label class="chk"><input type="checkbox" name="condiciones" value="Enfermedad renal"> Enfermedad renal</label>
+            <label class="chk"><input type="checkbox" name="condiciones" value="Enfermedad hepática"> Enfermedad hepática</label>
+            <label class="chk"><input type="checkbox" name="condiciones" value="Coagulopatía"> Coagulopatía</label>
+            <label class="chk"><input type="checkbox" name="condiciones" value="VIH / inmunosupresión"> VIH / inmunosupresión</label>
+            <label class="chk"><input type="checkbox" name="condiciones" value="Embarazo"> Embarazo</label>
+            <label class="chk"><input type="checkbox" name="condiciones" value="Ansiedad / depresión"> Ansiedad / depresión</label>
+          </div>
+          <div class="grid" style="margin-top:10px">
+            <div class="f"><label>Otras condiciones</label><input name="condicionesOtras"></div>
+            <div class="f wide"><label>Notas / detalles</label><textarea name="condicionesNotas"></textarea></div>
+          </div>
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="num">6</span> Medicamentos actuales</summary>
+        <div class="sec">
+          <div id="medRows"></div>
+          <button type="button" class="btn sm" id="addMed">＋ Agregar medicamento</button>
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="num">7</span> Cirugías, hospitalizaciones y antecedentes</summary>
+        <div class="sec">
+          <div id="cirRows"></div>
+          <button type="button" class="btn sm" id="addCir">＋ Agregar antecedente</button>
+          <div class="f" style="margin-top:10px"><label>Antecedentes familiares relevantes</label><textarea name="antecedentesFam"></textarea></div>
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="num">8</span> Vacunas e inmunizaciones</summary>
+        <div class="sec">
+          <div class="checks">
+            <label class="chk"><input type="checkbox" name="vacunas" value="COVID-19"> COVID-19</label>
+            <label class="chk"><input type="checkbox" name="vacunas" value="Gripe / influenza"> Gripe</label>
+            <label class="chk"><input type="checkbox" name="vacunas" value="Tétanos / difteria"> Tétanos</label>
+            <label class="chk"><input type="checkbox" name="vacunas" value="Hepatitis A"> Hepatitis A</label>
+            <label class="chk"><input type="checkbox" name="vacunas" value="Hepatitis B"> Hepatitis B</label>
+            <label class="chk"><input type="checkbox" name="vacunas" value="Triple viral (MMR)"> Triple viral</label>
+            <label class="chk"><input type="checkbox" name="vacunas" value="Varicela"> Varicela</label>
+            <label class="chk"><input type="checkbox" name="vacunas" value="Neumococo"> Neumococo</label>
+            <label class="chk"><input type="checkbox" name="vacunas" value="Fiebre amarilla"> Fiebre amarilla</label>
+          </div>
+          <div class="grid" style="margin-top:10px">
+            <div class="f"><label>Otras vacunas</label><input name="vacunasOtras"></div>
+            <div class="f wide"><label>Notas (fechas, dosis pendientes)</label><textarea name="vacunasNotas"></textarea></div>
+          </div>
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="num">9</span> Implantes, dispositivos y necesidades especiales</summary>
+        <div class="sec">
+          <label>Dispositivos / implantes</label>
+          <div class="checks" style="margin-top:6px">
+            <label class="chk"><input type="checkbox" name="dispositivos" value="Marcapasos"> Marcapasos</label>
+            <label class="chk"><input type="checkbox" name="dispositivos" value="Desfibrilador"> Desfibrilador</label>
+            <label class="chk"><input type="checkbox" name="dispositivos" value="Prótesis"> Prótesis</label>
+            <label class="chk"><input type="checkbox" name="dispositivos" value="Catéter /PICC"> Catéter / PICC</label>
+            <label class="chk"><input type="checkbox" name="dispositivos" value="Implante coclear"> Implante coclear</label>
+            <label class="chk"><input type="checkbox" name="dispositivos" value="Otro"> Otro</label>
+          </div>
+          <div class="grid" style="margin-top:10px">
+            <div class="f wide"><label>Detalle de dispositivos</label><input name="dispositivosNotas"></div>
+          </div>
+          <label style="display:block;margin-top:12px">Necesidades especiales</label>
+          <div class="checks" style="margin-top:6px">
+            <label class="chk"><input type="checkbox" name="necesidades" value="Oxígeno"> Oxígeno</label>
+            <label class="chk"><input type="checkbox" name="necesidades" value="Silla de ruedas"> Silla de ruedas</label>
+            <label class="chk"><input type="checkbox" name="necesidades" value="Movilidad reducida"> Movilidad reducida</label>
+            <label class="chk"><input type="checkbox" name="necesidades" value="Dieta especial"> Dieta especial</label>
+            <label class="chk"><input type="checkbox" name="necesidades" value="Sordera / hipoacusia"> Sordera</label>
+            <label class="chk"><input type="checkbox" name="necesidades" value="Ceguera / baja visión"> Baja visión</label>
+            <label class="chk"><input type="checkbox" name="necesidades" value="Dificultad de comunicación"> Dificultad de comunicación</label>
+          </div>
+          <div class="f" style="margin-top:10px"><label>Detalle de necesidades</label><input name="necesidadesNotas"></div>
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="num">10</span> Directrices médicas y consentimiento</summary>
+        <div class="sec">
+          <div class="checks">
+            <label class="chk"><input type="checkbox" name="directrices" value="No reanimar (DNR)"> No reanimar (DNR)</label>
+            <label class="chk"><input type="checkbox" name="directrices" value="No intubar"> No intubar</label>
+            <label class="chk"><input type="checkbox" name="directrices" value="No transfundir"> No transfundir</label>
+            <label class="chk"><input type="checkbox" name="directrices" value="Donante de órganos"> Donante de órganos</label>
+            <label class="chk"><input type="checkbox" name="directrices" value="Aislamiento / precauciones"> Aislamiento</label>
+          </div>
+          <div class="f" style="margin-top:10px"><label>Notas sobre directrices</label><textarea name="directricesNotas"></textarea></div>
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="num">11</span> Obra social / seguro médico</summary>
+        <div class="sec grid">
+          <div class="f"><label>Tipo</label><select name="seguroTipo"><option value="">—</option><option>Público</option><option>Privado</option><option>Mutual</option><option>Sin cobertura</option></select></div>
+          <div class="f"><label>Aseguradora / obra social</label><input name="seguroAseguradora"></div>
+          <div class="f"><label>Nº de póliza / afiliado</label><input name="seguroPoliza"></div>
+          <div class="f"><label>Vigencia</label><input name="seguroVigencia" placeholder="Ej. 12/2026"></div>
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="num">12</span> Notas finales y actualización</summary>
+        <div class="sec grid">
+          <div class="f wide"><label>Instrucciones generales para el personal de emergencia</label><textarea name="notas" placeholder="Ej. Tomar medicamentos con alimentos. Llevar siempre la tarjeta."></textarea></div>
+          <div class="f"><label>Registrado / actualizado por</label><input name="actualizadoPor"></div>
+          <div class="f"><label>Última actualización</label><input id="actualizado" disabled></div>
+        </div>
+      </details>
+    </form>
+  </main>
+
+  <aside class="card right">
+    <h2>Código QR</h2>
+    <div id="qr"></div>
+    <div class="qrname" id="qrName">Sin nombre</div>
+    <div class="qrid" id="qrId">ID: —</div>
+    <textarea class="qrtext" id="qrText" readonly></textarea>
+    <button class="btn sm" id="btnCopy">⧉ Copiar datos del QR</button>
+    <button class="btn sm" id="btnPdf">📄 Descargar PDF (ficha + QR)</button>
+    <button class="btn sm" id="btnShare">📲 Compartir PDF (celular)</button>
+    <button class="btn sm" id="btnQrPng">⬇ Descargar QR (PNG)</button>
+    <button class="btn sm" id="btnJson">⬇ Descargar ficha (JSON)</button>
+    <button class="btn sm" id="btnWhats">💬 Pasar datos por WhatsApp</button>
+    <div class="note"><b>Qué lleva el QR de arriba:</b> ID, nombre, sangre, alergias, condiciones, medicamentos y contacto de emergencia. La ficha completa se guarda en el archivo <b>.json</b> con el mismo ID.</div>
+
+    <div style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px">
+      <h2>QR para el gym (enlace)</h2>
+      <input id="linkUrl" placeholder="https://tu-sitio/ficha_medica_qr.html">
+      <button class="btn sm" id="btnLinkQr" style="width:100%;margin-top:6px">Generar QR de acceso</button>
+      <div id="linkQr" style="margin:10px auto;min-height:60px;display:grid;place-items:center"></div>
+      <button class="btn sm" id="btnLinkPng">⬇ Descargar QR de acceso</button>
+      <p class="hint">Este QR abre el formulario. Imprimilo o mandalo al gym: cada persona lo escanea, llena su ficha y comparte el PDF.</p>
+    </div>
+  </aside>
+</div>
+
+<div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===== QR Code generator (Kazuhiko Arase, MIT) — incluido para funcionar sin internet ===== */
+var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this.parsedData=[];for(var b=[],d=0,e=this.data.length;e>d;d++){var f=this.data.charCodeAt(d);f>65536?(b[0]=240|(1835008&f)>>>18,b[1]=128|(258048&f)>>>12,b[2]=128|(4032&f)>>>6,b[3]=128|63&f):f>2048?(b[0]=224|(61440&f)>>>12,b[1]=128|(4032&f)>>>6,b[2]=128|63&f):f>128?(b[0]=192|(1984&f)>>>6,b[1]=128|63&f):b[0]=f,this.parsedData=this.parsedData.concat(b)}this.parsedData.length!=this.data.length&&(this.parsedData.unshift(191),this.parsedData.unshift(187),this.parsedData.unshift(239))}function b(a,b){this.typeNumber=a,this.errorCorrectLevel=b,this.modules=null,this.moduleCount=0,this.dataCache=null,this.dataList=[]}function i(a,b){if(void 0==a.length)throw new Error(a.length+"/"+b);for(var c=0;c<a.length&&0==a[c];)c++;this.num=new Array(a.length-c+b);for(var d=0;d<a.length-c;d++)this.num[d]=a[d+c]}function j(a,b){this.totalCount=a,this.dataCount=b}function k(){this.buffer=[],this.length=0}function m(){return"undefined"!=typeof CanvasRenderingContext2D}function n(){var a=!1,b=navigator.userAgent;return/android/i.test(b)&&(a=!0,aMat=b.toString().match(/android ([0-9]\.[0-9])/i),aMat&&aMat[1]&&(a=parseFloat(aMat[1]))),a}function r(a,b){for(var c=1,e=s(a),f=0,g=l.length;g>=f;f++){var h=0;switch(b){case d.L:h=l[f][0];break;case d.M:h=l[f][1];break;case d.Q:h=l[f][2];break;case d.H:h=l[f][3]}if(h>=e)break;c++}if(c>l.length)throw new Error("Too long data");return c}function s(a){var b=encodeURI(a).toString().replace(/\%[0-9a-fA-F]{2}/g,"a");return b.length+(b.length!=a?3:0)}a.prototype={getLength:function(){return this.parsedData.length},write:function(a){for(var b=0,c=this.parsedData.length;c>b;b++)a.put(this.parsedData[b],8)}},b.prototype={addData:function(b){var c=new a(b);this.dataList.push(c),this.dataCache=null},isDark:function(a,b){if(0>a||this.moduleCount<=a||0>b||this.moduleCount<=b)throw new Error(a+","+b);return this.modules[a][b]},getModuleCount:function(){return this.moduleCount},make:function(){this.makeImpl(!1,this.getBestMaskPattern())},makeImpl:function(a,c){this.moduleCount=4*this.typeNumber+17,this.modules=new Array(this.moduleCount);for(var d=0;d<this.moduleCount;d++){this.modules[d]=new Array(this.moduleCount);for(var e=0;e<this.moduleCount;e++)this.modules[d][e]=null}this.setupPositionProbePattern(0,0),this.setupPositionProbePattern(this.moduleCount-7,0),this.setupPositionProbePattern(0,this.moduleCount-7),this.setupPositionAdjustPattern(),this.setupTimingPattern(),this.setupTypeInfo(a,c),this.typeNumber>=7&&this.setupTypeNumber(a),null==this.dataCache&&(this.dataCache=b.createData(this.typeNumber,this.errorCorrectLevel,this.dataList)),this.mapData(this.dataCache,c)},setupPositionProbePattern:function(a,b){for(var c=-1;7>=c;c++)if(!(-1>=a+c||this.moduleCount<=a+c))for(var d=-1;7>=d;d++)-1>=b+d||this.moduleCount<=b+d||(this.modules[a+c][b+d]=c>=0&&6>=c&&(0==d||6==d)||d>=0&&6>=d&&(0==c||6==c)||c>=2&&4>=c&&d>=2&&4>=d?!0:!1)},getBestMaskPattern:function(){for(var a=0,b=0,c=0;8>c;c++){this.makeImpl(!0,c);var d=f.getLostPoint(this);(0==c||a>d)&&(a=d,b=c)}return b},createMovieClip:function(a,b,c){var d=a.createEmptyMovieClip(b,c),e=1;this.make();for(var f=0;f<this.modules.length;f++)for(var g=f*e,h=0;h<this.modules[f].length;h++){var i=h*e,j=this.modules[f][h];j&&(d.beginFill(0,100),d.moveTo(i,g),d.lineTo(i+e,g),d.lineTo(i+e,g+e),d.lineTo(i,g+e),d.endFill())}return d},setupTimingPattern:function(){for(var a=8;a<this.moduleCount-8;a++)null==this.modules[a][6]&&(this.modules[a][6]=0==a%2);for(var b=8;b<this.moduleCount-8;b++)null==this.modules[6][b]&&(this.modules[6][b]=0==b%2)},setupPositionAdjustPattern:function(){for(var a=f.getPatternPosition(this.typeNumber),b=0;b<a.length;b++)for(var c=0;c<a.length;c++){var d=a[b],e=a[c];if(null==this.modules[d][e])for(var g=-2;2>=g;g++)for(var h=-2;2>=h;h++)this.modules[d+g][e+h]=-2==g||2==g||-2==h||2==h||0==g&&0==h?!0:!1}},setupTypeNumber:function(a){for(var b=f.getBCHTypeNumber(this.typeNumber),c=0;18>c;c++){var d=!a&&1==(1&b>>c);this.modules[Math.floor(c/3)][c%3+this.moduleCount-8-3]=d}for(var c=0;18>c;c++){var d=!a&&1==(1&b>>c);this.modules[c%3+this.moduleCount-8-3][Math.floor(c/3)]=d}},setupTypeInfo:function(a,b){for(var c=this.errorCorrectLevel<<3|b,d=f.getBCHTypeInfo(c),e=0;15>e;e++){var g=!a&&1==(1&d>>e);6>e?this.modules[e][8]=g:8>e?this.modules[e+1][8]=g:this.modules[this.moduleCount-15+e][8]=g}for(var e=0;15>e;e++){var g=!a&&1==(1&d>>e);8>e?this.modules[8][this.moduleCount-e-1]=g:9>e?this.modules[8][15-e-1+1]=g:this.modules[8][15-e-1]=g}this.modules[this.moduleCount-8][8]=!a},mapData:function(a,b){for(var c=-1,d=this.moduleCount-1,e=7,g=0,h=this.moduleCount-1;h>0;h-=2)for(6==h&&h--;;){for(var i=0;2>i;i++)if(null==this.modules[d][h-i]){var j=!1;g<a.length&&(j=1==(1&a[g]>>>e));var k=f.getMask(b,d,h-i);k&&(j=!j),this.modules[d][h-i]=j,e--,-1==e&&(g++,e=7)}if(d+=c,0>d||this.moduleCount<=d){d-=c,c=-c;break}}}},b.PAD0=236,b.PAD1=17,b.createData=function(a,c,d){for(var e=j.getRSBlocks(a,c),g=new k,h=0;h<d.length;h++){var i=d[h];g.put(i.mode,4),g.put(i.getLength(),f.getLengthInBits(i.mode,a)),i.write(g)}for(var l=0,h=0;h<e.length;h++)l+=e[h].dataCount;if(g.getLengthInBits()>8*l)throw new Error("code length overflow. ("+g.getLengthInBits()+">"+8*l+")");for(g.getLengthInBits()+4<=8*l&&g.put(0,4);0!=g.getLengthInBits()%8;)g.putBit(!1);for(;;){if(g.getLengthInBits()>=8*l)break;if(g.put(b.PAD0,8),g.getLengthInBits()>=8*l)break;g.put(b.PAD1,8)}return b.createBytes(g,e)},b.createBytes=function(a,b){for(var c=0,d=0,e=0,g=new Array(b.length),h=new Array(b.length),j=0;j<b.length;j++){var k=b[j].dataCount,l=b[j].totalCount-k;d=Math.max(d,k),e=Math.max(e,l),g[j]=new Array(k);for(var m=0;m<g[j].length;m++)g[j][m]=255&a.buffer[m+c];c+=k;var n=f.getErrorCorrectPolynomial(l),o=new i(g[j],n.getLength()-1),p=o.mod(n);h[j]=new Array(n.getLength()-1);for(var m=0;m<h[j].length;m++){var q=m+p.getLength()-h[j].length;h[j][m]=q>=0?p.get(q):0}}for(var r=0,m=0;m<b.length;m++)r+=b[m].totalCount;for(var s=new Array(r),t=0,m=0;d>m;m++)for(var j=0;j<b.length;j++)m<g[j].length&&(s[t++]=g[j][m]);for(var m=0;e>m;m++)for(var j=0;j<b.length;j++)m<h[j].length&&(s[t++]=h[j][m]);return s};for(var c={MODE_NUMBER:1,MODE_ALPHA_NUM:2,MODE_8BIT_BYTE:4,MODE_KANJI:8},d={L:1,M:0,Q:3,H:2},e={PATTERN000:0,PATTERN001:1,PATTERN010:2,PATTERN011:3,PATTERN100:4,PATTERN101:5,PATTERN110:6,PATTERN111:7},f={PATTERN_POSITION_TABLE:[[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50],[6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],[6,30,56,82],[6,30,58,86],[6,34,62,90],[6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],[6,28,54,80,106],[6,32,58,84,110],[6,30,58,86,114],[6,34,62,90,118],[6,26,50,74,98,122],[6,30,54,78,102,126],[6,26,52,78,104,130],[6,30,56,82,108,134],[6,34,60,86,112,138],[6,30,58,86,114,142],[6,34,62,90,118,146],[6,30,54,78,102,126,150],[6,24,50,76,102,128,154],[6,28,54,80,106,132,158],[6,32,58,84,110,136,162],[6,26,54,82,110,138,166],[6,30,58,86,114,142,170]],G15:1335,G18:7973,G15_MASK:21522,getBCHTypeInfo:function(a){for(var b=a<<10;f.getBCHDigit(b)-f.getBCHDigit(f.G15)>=0;)b^=f.G15<<f.getBCHDigit(b)-f.getBCHDigit(f.G15);return(a<<10|b)^f.G15_MASK},getBCHTypeNumber:function(a){for(var b=a<<12;f.getBCHDigit(b)-f.getBCHDigit(f.G18)>=0;)b^=f.G18<<f.getBCHDigit(b)-f.getBCHDigit(f.G18);return a<<12|b},getBCHDigit:function(a){for(var b=0;0!=a;)b++,a>>>=1;return b},getPatternPosition:function(a){return f.PATTERN_POSITION_TABLE[a-1]},getMask:function(a,b,c){switch(a){case e.PATTERN000:return 0==(b+c)%2;case e.PATTERN001:return 0==b%2;case e.PATTERN010:return 0==c%3;case e.PATTERN011:return 0==(b+c)%3;case e.PATTERN100:return 0==(Math.floor(b/2)+Math.floor(c/3))%2;case e.PATTERN101:return 0==b*c%2+b*c%3;case e.PATTERN110:return 0==(b*c%2+b*c%3)%2;case e.PATTERN111:return 0==(b*c%3+(b+c)%2)%2;default:throw new Error("bad maskPattern:"+a)}},getErrorCorrectPolynomial:function(a){for(var b=new i([1],0),c=0;a>c;c++)b=b.multiply(new i([1,g.gexp(c)],0));return b},getLengthInBits:function(a,b){if(b>=1&&10>b)switch(a){case c.MODE_NUMBER:return 10;case c.MODE_ALPHA_NUM:return 9;case c.MODE_8BIT_BYTE:return 8;case c.MODE_KANJI:return 8;default:throw new Error("mode:"+a)}else if(27>b)switch(a){case c.MODE_NUMBER:return 12;case c.MODE_ALPHA_NUM:return 11;case c.MODE_8BIT_BYTE:return 16;case c.MODE_KANJI:return 10;default:throw new Error("mode:"+a)}else{if(!(41>b))throw new Error("type:"+b);switch(a){case c.MODE_NUMBER:return 14;case c.MODE_ALPHA_NUM:return 13;case c.MODE_8BIT_BYTE:return 16;case c.MODE_KANJI:return 12;default:throw new Error("mode:"+a)}}},getLostPoint:function(a){for(var b=a.getModuleCount(),c=0,d=0;b>d;d++)for(var e=0;b>e;e++){for(var f=0,g=a.isDark(d,e),h=-1;1>=h;h++)if(!(0>d+h||d+h>=b))for(var i=-1;1>=i;i++)0>e+i||e+i>=b||(0!=h||0!=i)&&g==a.isDark(d+h,e+i)&&f++;f>5&&(c+=3+f-5)}for(var d=0;b-1>d;d++)for(var e=0;b-1>e;e++){var j=0;a.isDark(d,e)&&j++,a.isDark(d+1,e)&&j++,a.isDark(d,e+1)&&j++,a.isDark(d+1,e+1)&&j++,(0==j||4==j)&&(c+=3)}for(var d=0;b>d;d++)for(var e=0;b-6>e;e++)a.isDark(d,e)&&!a.isDark(d,e+1)&&a.isDark(d,e+2)&&a.isDark(d,e+3)&&a.isDark(d,e+4)&&!a.isDark(d,e+5)&&a.isDark(d,e+6)&&(c+=40);for(var e=0;b>e;e++)for(var d=0;b-6>d;d++)a.isDark(d,e)&&!a.isDark(d+1,e)&&a.isDark(d+2,e)&&a.isDark(d+3,e)&&a.isDark(d+4,e)&&!a.isDark(d+5,e)&&a.isDark(d+6,e)&&(c+=40);for(var k=0,e=0;b>e;e++)for(var d=0;b>d;d++)a.isDark(d,e)&&k++;var l=Math.abs(100*k/b/b-50)/5;return c+=10*l}},g={glog:function(a){if(1>a)throw new Error("glog("+a+")");return g.LOG_TABLE[a]},gexp:function(a){for(;0>a;)a+=255;for(;a>=256;)a-=255;return g.EXP_TABLE[a]},EXP_TABLE:new Array(256),LOG_TABLE:new Array(256)},h=0;8>h;h++)g.EXP_TABLE[h]=1<<h;for(var h=8;256>h;h++)g.EXP_TABLE[h]=g.EXP_TABLE[h-4]^g.EXP_TABLE[h-5]^g.EXP_TABLE[h-6]^g.EXP_TABLE[h-8];for(var h=0;255>h;h++)g.LOG_TABLE[g.EXP_TABLE[h]]=h;i.prototype={get:function(a){return this.num[a]},getLength:function(){return this.num.length},multiply:function(a){for(var b=new Array(this.getLength()+a.getLength()-1),c=0;c<this.getLength();c++)for(var d=0;d<a.getLength();d++)b[c+d]^=g.gexp(g.glog(this.get(c))+g.glog(a.get(d)));return new i(b,0)},mod:function(a){if(this.getLength()-a.getLength()<0)return this;for(var b=g.glog(this.get(0))-g.glog(a.get(0)),c=new Array(this.getLength()),d=0;d<this.getLength();d++)c[d]=this.get(d);for(var d=0;d<a.getLength();d++)c[d]^=g.gexp(g.glog(a.get(d))+b);return new i(c,0).mod(a)}},j.RS_BLOCK_TABLE=[[1,26,19],[1,26,16],[1,26,13],[1,26,9],[1,44,34],[1,44,28],[1,44,22],[1,44,16],[1,70,55],[1,70,44],[2,35,17],[2,35,13],[1,100,80],[2,50,32],[2,50,24],[4,25,9],[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12],[2,86,68],[4,43,27],[4,43,19],[4,43,15],[2,98,78],[4,49,31],[2,32,14,4,33,15],[4,39,13,1,40,14],[2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,19],[4,40,14,2,41,15],[2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13],[2,86,68,2,87,69],[4,69,43,1,70,44],[6,43,19,2,44,20],[6,43,15,2,44,16],[4,101,81],[1,80,50,4,81,51],[4,50,22,4,51,23],[3,36,12,8,37,13],[2,116,92,2,117,93],[6,58,36,2,59,37],[4,46,20,6,47,21],[7,42,14,4,43,15],[4,133,107],[8,59,37,1,60,38],[8,44,20,4,45,21],[12,33,11,4,34,12],[3,145,115,1,146,116],[4,64,40,5,65,41],[11,36,16,5,37,17],[11,36,12,5,37,13],[5,109,87,1,110,88],[5,65,41,5,66,42],[5,54,24,7,55,25],[11,36,12],[5,122,98,1,123,99],[7,73,45,3,74,46],[15,43,19,2,44,20],[3,45,15,13,46,16],[1,135,107,5,136,108],[10,74,46,1,75,47],[1,50,22,15,51,23],[2,42,14,17,43,15],[5,150,120,1,151,121],[9,69,43,4,70,44],[17,50,22,1,51,23],[2,42,14,19,43,15],[3,141,113,4,142,114],[3,70,44,11,71,45],[17,47,21,4,48,22],[9,39,13,16,40,14],[3,135,107,5,136,108],[3,67,41,13,68,42],[15,54,24,5,55,25],[15,43,15,10,44,16],[4,144,116,4,145,117],[17,68,42],[17,50,22,6,51,23],[19,46,16,6,47,17],[2,139,111,7,140,112],[17,74,46],[7,54,24,16,55,25],[34,37,13],[4,151,121,5,152,122],[4,75,47,14,76,48],[11,54,24,14,55,25],[16,45,15,14,46,16],[6,147,117,4,148,118],[6,73,45,14,74,46],[11,54,24,16,55,25],[30,46,16,2,47,17],[8,132,106,4,133,107],[8,75,47,13,76,48],[7,54,24,22,55,25],[22,45,15,13,46,16],[10,142,114,2,143,115],[19,74,46,4,75,47],[28,50,22,6,51,23],[33,46,16,4,47,17],[8,152,122,4,153,123],[22,73,45,3,74,46],[8,53,23,26,54,24],[12,45,15,28,46,16],[3,147,117,10,148,118],[3,73,45,23,74,46],[4,54,24,31,55,25],[11,45,15,31,46,16],[7,146,116,7,147,117],[21,73,45,7,74,46],[1,53,23,37,54,24],[19,45,15,26,46,16],[5,145,115,10,146,116],[19,75,47,10,76,48],[15,54,24,25,55,25],[23,45,15,25,46,16],[13,145,115,3,146,116],[2,74,46,29,75,47],[42,54,24,1,55,25],[23,45,15,28,46,16],[17,145,115],[10,74,46,23,75,47],[10,54,24,35,55,25],[19,45,15,35,46,16],[17,145,115,1,146,116],[14,74,46,21,75,47],[29,54,24,19,55,25],[11,45,15,46,46,16],[13,145,115,6,146,116],[14,74,46,23,75,47],[44,54,24,7,55,25],[59,46,16,1,47,17],[12,151,121,7,152,122],[12,75,47,26,76,48],[39,54,24,14,55,25],[22,45,15,41,46,16],[6,151,121,14,152,122],[6,75,47,34,76,48],[46,54,24,10,55,25],[2,45,15,64,46,16],[17,152,122,4,153,123],[29,74,46,14,75,47],[49,54,24,10,55,25],[24,45,15,46,46,16],[4,152,122,18,153,123],[13,74,46,32,75,47],[48,54,24,14,55,25],[42,45,15,32,46,16],[20,147,117,4,148,118],[40,75,47,7,76,48],[43,54,24,22,55,25],[10,45,15,67,46,16],[19,148,118,6,149,119],[18,75,47,31,76,48],[34,54,24,34,55,25],[20,45,15,61,46,16]],j.getRSBlocks=function(a,b){var c=j.getRsBlockTable(a,b);if(void 0==c)throw new Error("bad rs block @ typeNumber:"+a+"/errorCorrectLevel:"+b);for(var d=c.length/3,e=[],f=0;d>f;f++)for(var g=c[3*f+0],h=c[3*f+1],i=c[3*f+2],k=0;g>k;k++)e.push(new j(h,i));return e},j.getRsBlockTable=function(a,b){switch(b){case d.L:return j.RS_BLOCK_TABLE[4*(a-1)+0];case d.M:return j.RS_BLOCK_TABLE[4*(a-1)+1];case d.Q:return j.RS_BLOCK_TABLE[4*(a-1)+2];case d.H:return j.RS_BLOCK_TABLE[4*(a-1)+3];default:return void 0}},k.prototype={get:function(a){var b=Math.floor(a/8);return 1==(1&this.buffer[b]>>>7-a%8)},put:function(a,b){for(var c=0;b>c;c++)this.putBit(1==(1&a>>>b-c-1))},getLengthInBits:function(){return this.length},putBit:function(a){var b=Math.floor(this.length/8);this.buffer.length<=b&&this.buffer.push(0),a&&(this.buffer[b]|=128>>>this.length%8),this.length++}};var l=[[17,14,11,7],[32,26,20,14],[53,42,32,24],[78,62,46,34],[106,84,60,44],[134,106,74,58],[154,122,86,64],[192,152,108,84],[230,180,130,98],[271,213,151,119],[321,251,177,137],[367,287,203,155],[425,331,241,177],[458,362,258,194],[520,412,292,220],[586,450,322,250],[644,504,364,280],[718,560,394,310],[792,624,442,338],[858,666,482,382],[929,711,509,403],[1003,779,565,439],[1091,857,611,461],[1171,911,661,511],[1273,997,715,535],[1367,1059,751,593],[1465,1125,805,625],[1528,1190,868,658],[1628,1264,908,698],[1732,1370,982,742],[1840,1452,1030,790],[1952,1538,1112,842],[2068,1628,1168,898],[2188,1722,1228,958],[2303,1809,1283,983],[2431,1911,1351,1051],[2563,1989,1423,1093],[2699,2099,1499,1139],[2809,2213,1579,1219],[2953,2331,1663,1273]],o=function(){var a=function(a,b){this._el=a,this._htOption=b};return a.prototype.draw=function(a){function g(a,b){var c=document.createElementNS("http://www.w3.org/2000/svg",a);for(var d in b)b.hasOwnProperty(d)&&c.setAttribute(d,b[d]);return c}var b=this._htOption,c=this._el,d=a.getModuleCount();Math.floor(b.width/d),Math.floor(b.height/d),this.clear();var h=g("svg",{viewBox:"0 0 "+String(d)+" "+String(d),width:"100%",height:"100%",fill:b.colorLight});h.setAttributeNS("http://www.w3.org/2000/xmlns/","xmlns:xlink","http://www.w3.org/1999/xlink"),c.appendChild(h),h.appendChild(g("rect",{fill:b.colorDark,width:"1",height:"1",id:"template"}));for(var i=0;d>i;i++)for(var j=0;d>j;j++)if(a.isDark(i,j)){var k=g("use",{x:String(i),y:String(j)});k.setAttributeNS("http://www.w3.org/1999/xlink","href","#template"),h.appendChild(k)}},a.prototype.clear=function(){for(;this._el.hasChildNodes();)this._el.removeChild(this._el.lastChild)},a}(),p="svg"===document.documentElement.tagName.toLowerCase(),q=p?o:m()?function(){function a(){this._elImage.src=this._elCanvas.toDataURL("image/png"),this._elImage.style.display="block",this._elCanvas.style.display="none"}function d(a,b){var c=this;if(c._fFail=b,c._fSuccess=a,null===c._bSupportDataURI){var d=document.createElement("img"),e=function(){c._bSupportDataURI=!1,c._fFail&&_fFail.call(c)},f=function(){c._bSupportDataURI=!0,c._fSuccess&&c._fSuccess.call(c)};return d.onabort=e,d.onerror=e,d.onload=f,d.src="data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==",void 0}c._bSupportDataURI===!0&&c._fSuccess?c._fSuccess.call(c):c._bSupportDataURI===!1&&c._fFail&&c._fFail.call(c)}if(this._android&&this._android<=2.1){var b=1/window.devicePixelRatio,c=CanvasRenderingContext2D.prototype.drawImage;CanvasRenderingContext2D.prototype.drawImage=function(a,d,e,f,g,h,i,j){if("nodeName"in a&&/img/i.test(a.nodeName))for(var l=arguments.length-1;l>=1;l--)arguments[l]=arguments[l]*b;else"undefined"==typeof j&&(arguments[1]*=b,arguments[2]*=b,arguments[3]*=b,arguments[4]*=b);c.apply(this,arguments)}}var e=function(a,b){this._bIsPainted=!1,this._android=n(),this._htOption=b,this._elCanvas=document.createElement("canvas"),this._elCanvas.width=b.width,this._elCanvas.height=b.height,a.appendChild(this._elCanvas),this._el=a,this._oContext=this._elCanvas.getContext("2d"),this._bIsPainted=!1,this._elImage=document.createElement("img"),this._elImage.style.display="none",this._el.appendChild(this._elImage),this._bSupportDataURI=null};return e.prototype.draw=function(a){var b=this._elImage,c=this._oContext,d=this._htOption,e=a.getModuleCount(),f=d.width/e,g=d.height/e,h=Math.round(f),i=Math.round(g);b.style.display="none",this.clear();for(var j=0;e>j;j++)for(var k=0;e>k;k++){var l=a.isDark(j,k),m=k*f,n=j*g;c.strokeStyle=l?d.colorDark:d.colorLight,c.lineWidth=1,c.fillStyle=l?d.colorDark:d.colorLight,c.fillRect(m,n,f,g),c.strokeRect(Math.floor(m)+.5,Math.floor(n)+.5,h,i),c.strokeRect(Math.ceil(m)-.5,Math.ceil(n)-.5,h,i)}this._bIsPainted=!0},e.prototype.makeImage=function(){this._bIsPainted&&d.call(this,a)},e.prototype.isPainted=function(){return this._bIsPainted},e.prototype.clear=function(){this._oContext.clearRect(0,0,this._elCanvas.width,this._elCanvas.height),this._bIsPainted=!1},e.prototype.round=function(a){return a?Math.floor(1e3*a)/1e3:a},e}():function(){var a=function(a,b){this._el=a,this._htOption=b};return a.prototype.draw=function(a){for(var b=this._htOption,c=this._el,d=a.getModuleCount(),e=Math.floor(b.width/d),f=Math.floor(b.height/d),g=['<table style="border:0;border-collapse:collapse;">'],h=0;d>h;h++){g.push("<tr>");for(var i=0;d>i;i++)g.push('<td style="border:0;border-collapse:collapse;padding:0;margin:0;width:'+e+"px;height:"+f+"px;background-color:"+(a.isDark(h,i)?b.colorDark:b.colorLight)+';"></td>');g.push("</tr>")}g.push("</table>"),c.innerHTML=g.join("");var j=c.childNodes[0],k=(b.width-j.offsetWidth)/2,l=(b.height-j.offsetHeight)/2;k>0&&l>0&&(j.style.margin=l+"px "+k+"px")},a.prototype.clear=function(){this._el.innerHTML=""},a}();QRCode=function(a,b){if(this._htOption={width:256,height:256,typeNumber:4,colorDark:"#000000",colorLight:"#ffffff",correctLevel:d.H},"string"==typeof b&&(b={text:b}),b)for(var c in b)this._htOption[c]=b[c];"string"==typeof a&&(a=document.getElementById(a)),this._android=n(),this._el=a,this._oQRCode=null,this._oDrawing=new q(this._el,this._htOption),this._htOption.text&&this.makeCode(this._htOption.text)},QRCode.prototype.makeCode=function(a){this._oQRCode=new b(r(a,this._htOption.correctLevel),this._htOption.correctLevel),this._oQRCode.addData(a),this._oQRCode.make(),this._el.title=a,this._oDrawing.draw(this._oQRCode),this.makeImage()},QRCode.prototype.makeImage=function(){"function"==typeof this._oDrawing.makeImage&&(!this._android||this._android>=3)&&this._oDrawing.makeImage()},QRCode.prototype.clear=function(){this._oDrawing.clear()},QRCode.CorrectLevel=d}();
+</script>
+
+<script>
+/* =========================== Aplicación =========================== */
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+const form = $('#ficha');
+let currentId = '';
+let dirHandle = null;
+let records = [];
+let toastTimer;
+let qrInstance = null;
+let linkQrInstance = null;
+const localDraft = location.protocol === 'file:';
+
+const norm = s => String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function toast(msg){
+  const t=$('#toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2600);
+}
+function age(dob){
+  if(!dob) return '';
+  const d=new Date(dob), now=new Date();
+  if(isNaN(d)) return '';
+  let a=now.getFullYear()-d.getFullYear();
+  if(now.getMonth()<d.getMonth() || (now.getMonth()===d.getMonth() && now.getDate()<d.getDate())) a--;
+  return a>=0 && a<130 ? a : '';
+}
+function safeName(name,id){
+  return (norm(name)||'ficha').replace(/[^a-zA-Z0-9]+/g,'_').replace(/^_|_$/g,'').slice(0,50) + '_' + id;
+}
+function newId(n){
+  return 'FM-' + new Date().getFullYear() + '-' + String(n||1).padStart(4,'0');
+}
+
+/* ---------- filas dinámicas ---------- */
+function medRow(data={}){
+  const d=document.createElement('div'); d.className='rowbox med-row';
+  d.innerHTML=`<div class="rowhead"><b>Medicamento</b><button type="button" class="link">✕ quitar</button></div>
+    <div class="grid">
+      <div class="f"><label>Nombre</label><input data-field="nombre" value="${esc(data.nombre)}" placeholder="Ej. Metformina"></div>
+      <div class="f"><label>Dosis</label><input data-field="dosis" value="${esc(data.dosis)}" placeholder="850 mg"></div>
+      <div class="f"><label>Frecuencia</label><input data-field="frecuencia" value="${esc(data.frecuencia)}" placeholder="c/12 h"></div>
+      <div class="f"><label>Motivo</label><input data-field="motivo" value="${esc(data.motivo)}"></div>
+    </div>`;
+  $('.link',d).onclick=()=>d.remove();
+  return d;
+}
+function cirRow(data={}){
+  const d=document.createElement('div'); d.className='rowbox cir-row';
+  d.innerHTML=`<div class="rowhead"><b>Antecedente</b><button type="button" class="link">✕ quitar</button></div>
+    <div class="grid">
+      <div class="f"><label>Fecha / año</label><input data-field="fecha" value="${esc(data.fecha)}" placeholder="2019"></div>
+      <div class="f wide"><label>Qué fue (cirugía, internación, fractura…)</label><input data-field="descripcion" value="${esc(data.descripcion)}"></div>
+    </div>`;
+  $('.link',d).onclick=()=>d.remove();
+  return d;
+}
+$('#addMed').onclick=()=>{ $('#medRows').appendChild(medRow()); };
+$('#addCir').onclick=()=>{ $('#cirRows').appendChild(cirRow()); };
+
+/* ---------- recolectar / llenar ---------- */
+function collect(){
+  const o={id:currentId};
+  $$('[name]',form).forEach(el=>{
+    const n=el.name;
+    if(el.type==='checkbox'){
+      if(el.checked) (o[n] ||= []).push(el.value);
+    } else if(el.type==='radio'){
+      if(el.checked) o[n]=el.value;
+    } else {
+      o[n]=el.value.trim();
+    }
+  });
+  o.medicamentos=$$('.med-row').map(r=>{
+    const x={}; $$('[data-field]',r).forEach(i=>x[i.dataset.field]=i.value.trim());
+    return x.nombre||x.dosis||x.frecuencia ? x : null;
+  }).filter(Boolean);
+  o.cirugias=$$('.cir-row').map(r=>{
+    const x={}; $$('[data-field]',r).forEach(i=>x[i.dataset.field]=i.value.trim());
+    return x.fecha||x.descripcion ? x : null;
+  }).filter(Boolean);
+  o.actualizado=new Date().toISOString();
+  return o;
+}
+function fill(o){
+  currentId=o.id||currentId;
+  $$('[name]',form).forEach(el=>{
+    const v=o[el.name];
+    if(el.type==='checkbox') el.checked=Array.isArray(v)&&v.includes(el.value);
+    else if(el.type==='radio') el.checked=(v===el.value);
+    else if(v!==undefined && v!==null) el.value=v;
+  });
+  $('#medRows').innerHTML=''; (o.medicamentos||[]).forEach(m=>$('#medRows').appendChild(medRow(m)));
+  $('#cirRows').innerHTML=''; (o.cirugias||[]).forEach(c=>$('#cirRows').appendChild(cirRow(c)));
+  $('#actualizado').value=o.actualizado ? new Date(o.actualizado).toLocaleString('es') : '';
+  updateAge();
+}
+
+/* ---------- texto del QR ---------- */
+function buildQrText(o){
+  const L=['FICHA MEDICA v1'];
+  L.push('ID: '+(o.id||'-'));
+  L.push('Nombre: '+norm(o.nombre||'SIN NOMBRE'));
+  if(o.fechaNac) L.push('Nac: '+o.fechaNac+(age(o.fechaNac)?' ('+age(o.fechaNac)+'a)':''));
+  if(o.docTipo||o.docNumero) L.push('Doc: '+norm(o.docTipo||'')+' '+norm(o.docNumero||''));
+  L.push('Sangre: '+norm((o.sangreGrupo||'?')+(o.sangreRh||'')));
+  const alg=[o.alerg_meds,o.alerg_foods,o.alerg_insects,o.alerg_env,o.alerg_other,
+             o.alerg_latex==='Sí'?'Latex':''].filter(Boolean).map(norm).join(', ');
+  L.push('Alergias: '+(alg||'Ninguna conocida'));
+  if(o.alerg_severity) L.push('Gravedad: '+norm(o.alerg_severity));
+  const cond=[...(o.condiciones||[]), o.condicionesOtras].filter(Boolean).map(norm).join(', ');
+  if(cond) L.push('Condiciones: '+cond);
+  const meds=(o.medicamentos||[]).map(m=>norm([m.nombre,m.dosis].filter(Boolean).join(' '))).filter(Boolean).join(', ');
+  if(meds) L.push('Medicamentos: '+meds);
+  const dirs=(o.directrices||[]).map(norm).join(' | ');
+  if(dirs) L.push('Directrices: '+dirs);
+  const c=[o.contactoNombre,o.contactoRel,o.contactoTel].filter(Boolean).map(norm).join(' ');
+  L.push('Emergencia: '+(c||'Sin contacto'));
+  L.push('Archivo: '+safeName(o.nombre,o.id)+'.json');
+  return L.join('\n');
+}
+
+/* ---------- dibujar QR ---------- */
+function renderQR(){
+  const o=collect();
+  const txt=buildQrText(o);
+  $('#qrText').value=txt;
+  $('#qrName').textContent=o.nombre||'Sin nombre';
+  $('#qrId').textContent='ID: '+(o.id||'—');
+  const box=$('#qr'); box.innerHTML='';
+  try{
+    qrInstance = new QRCode(box,{text:txt,width:220,height:220,colorDark:'#0f172a',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+  }catch(e){
+    qrInstance = null;
+    box.innerHTML='<div style="font-size:11px;color:#b91c1c;padding:10px">QR demasiado largo: acortá alergias o medicamentos.</div>';
+  }
+}
+function qrDataUrl(){
+  const c=$('#qr canvas'); return c?c.toDataURL('image/png'):null;
+}
+function dataUrlToBlob(u){
+  const [h,b]=u.split(','); const bin=atob(b); const arr=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+  return new Blob([arr],{type:'image/png'});
+}
+
+/* ---------- guardado en carpeta ---------- */
+function openDB(){
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open('ficha_medica_qr',1);
+    r.onupgradeneeded=()=>r.result.createObjectStore('handles');
+    r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error);
+  });
+}
+async function saveHandle(){
+  if(!dirHandle) return;
+  try{ const db=await openDB(); const tx=db.transaction('handles','readwrite');
+    tx.objectStore('handles').put(dirHandle,'folder');
+    await new Promise(r=>tx.oncomplete=r); db.close();
+  }catch(e){}
+}
+async function readHandle(){
+  try{
+    const db=await openDB(); const tx=db.transaction('handles','readonly');
+    const q=tx.objectStore('handles').get('folder');
+    const h=await new Promise(r=>{q.onsuccess=()=>r(q.result);q.onerror=()=>r(null);});
+    db.close(); return h||null;
+  }catch(e){ return null; }
+}
+async function pickFolder(){
+  if(!window.showDirectoryPicker){
+    toast('Este navegador no permite elegir carpeta. Se usarán descargas.');
+    $('#folderBox').innerHTML='Carpeta: <b>descargas del navegador</b>';
+    return;
+  }
+  try{
+    dirHandle=await window.showDirectoryPicker({mode:'readwrite'});
+    $('#folderBox').innerHTML='Carpeta: <b>'+esc(dirHandle.name)+'</b><br>Los archivos se guardan ahí.';
+    await saveHandle();
+    await loadRecords(); toast('Carpeta lista: '+dirHandle.name);
+  }catch(e){ if(e.name!=='AbortError') toast('No se pudo abrir la carpeta.'); }
+}
+async function permissionOk(){
+  if(!dirHandle) return false;
+  const q=await dirHandle.queryPermission({mode:'readwrite'});
+  if(q==='granted') return true;
+  return (await dirHandle.requestPermission({mode:'readwrite'}))==='granted';
+}
+async function writeEntry(name,content){
+  if(dirHandle && await permissionOk()){
+    const fh=await dirHandle.getFileHandle(name,{create:true});
+    const w=await fh.createWritable(); await w.write(content); await w.close();
+  }else{
+    download(content instanceof Blob ? URL.createObjectURL(content) : URL.createObjectURL(new Blob([content],{type:'application/json'})),name);
+  }
+}
+function download(url,name){
+  const a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>{ if(url.startsWith('blob:')) URL.revokeObjectURL(url); },1500);
+}
+async function loadIndex(){
+  if(!dirHandle) return [];
+  try{
+    const fh=await dirHandle.getFileHandle('indice.json');
+    const f=await fh.getFile(); return JSON.parse(await f.text());
+  }catch(e){ return []; }
+}
+async function loadRecords(){
+  if(!dirHandle){ renderList(); return; }
+  const idx=await loadIndex();
+  if(idx.length){ records=idx; }
+  else{
+    const out=[];
+    for await(const [name,h] of dirHandle.entries()){
+      if(name.endsWith('.json') && name!=='indice.json'){
+        try{ out.push(JSON.parse(await (await h.getFile()).text())); }catch(e){}
+      }
+    }
+    records=out;
+  }
+  renderList();
+}
+async function saveRecord(){
+  const o=collect();
+  if(!o.nombre){ toast('Falta el nombre y apellido.'); $('#nombre').focus(); return; }
+  if(!currentId) currentId=newId(records.length+1);
+  o.id=currentId;
+  const base=safeName(o.nombre,o.id);
+  const json=JSON.stringify(o,null,2);
+  const png=qrDataUrl();
+  try{
+    await writeEntry(base+'.json',json);
+    if(png) await writeEntry(base+'_QR.png',dataUrlToBlob(png));
+    const other=records.filter(r=>r.id!==o.id);
+    records=[...other,{id:o.id,nombre:o.nombre,sangre:(o.sangreGrupo||'?')+(o.sangreRh||''),
+      alergias:[o.alerg_meds,o.alerg_foods,o.alerg_other].filter(Boolean).join(', '),
+      archivo:base+'.json',qr:base+'_QR.png',actualizado:o.actualizado}];
+    if(dirHandle) await writeEntry('indice.json',JSON.stringify(records,null,2));
+    if(localDraft) localStorage.setItem('fm_draft',JSON.stringify(o));
+    $('#saveState').textContent='Guardado '+new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
+    renderList(); updateHeader(); toast('Ficha guardada: '+base+'.json'+(png?' + QR':''));
+  }catch(e){ toast('Error al guardar: '+e.message); }
+}
+async function deleteRecord(r){
+  if(!confirm('¿Eliminar la ficha de '+r.nombre+'? Se borrarán el JSON y el QR.')) return;
+  try{
+    if(dirHandle && await permissionOk()){
+      for(const f of [r.archivo,r.qr]) { try{ await dirHandle.removeEntry(f); }catch(e){} }
+    }
+    records=records.filter(x=>x.id!==r.id);
+    if(dirHandle) await writeEntry('indice.json',JSON.stringify(records,null,2));
+    renderList(); toast('Ficha eliminada.');
+  }catch(e){ toast('No se pudo eliminar: '+e.message); }
+}
+
+/* ---------- lista ---------- */
+function renderList(){
+  const q=($('#search').value||'').toLowerCase();
+  const list=records.filter(r=>[r.nombre,r.id,r.sangre,r.alergias].join(' ').toLowerCase().includes(q));
+  const box=$('#plist'); box.innerHTML='';
+  if(!list.length){ box.innerHTML='<div class="empty">'+(records.length?'Sin coincidencias':'Todavía no hay fichas guardadas.')+'</div>'; return; }
+  list.sort((a,b)=>String(b.actualizado||'').localeCompare(String(a.actualizado||''))).forEach(r=>{
+    const d=document.createElement('div');
+    d.className='pitem'+(r.id===currentId?' active':'');
+    d.innerHTML=`<div class="nm"><span>${esc(r.nombre||'Sin nombre')}</span><span class="badge blood">${esc(r.sangre||'?')}</span></div>
+      <div class="meta">${esc(r.id)} · ${r.actualizado?new Date(r.actualizado).toLocaleDateString('es'):''}</div>
+      ${r.alergias?'<div class="meta"><span class="badge alert">⚠ '+esc(r.alergias.slice(0,55))+'</span></div>':''}`;
+    d.onclick=()=>loadById(r.id);
+    const del=document.createElement('button');
+    del.className='link'; del.textContent='🗑'; del.title='Eliminar ficha';
+    del.style.cssText='position:absolute;right:6px;bottom:6px';
+    d.style.position='relative'; d.appendChild(del);
+    del.onclick=e=>{e.stopPropagation();deleteRecord(r);};
+    box.appendChild(d);
+  });
+}
+async function loadById(id){
+  if(dirHandle && await permissionOk()){
+    const r=records.find(x=>x.id===id);
+    if(r){ try{
+      const fh=await dirHandle.getFileHandle(r.archivo);
+      fill(JSON.parse(await (await fh.getFile()).text()));
+      updateHeader(); renderQR(); toast('Ficha cargada: '+r.nombre); return;
+    }catch(e){} }
+  }
+  toast('No se puede leer el archivo desde esta carpeta.');
+}
+
+/* ---------- vista / acciones ---------- */
+function field(label,v){ return v?`<dt>${esc(label)}</dt><dd>${esc(v)}</dd>`:''; }
+function listVal(v){ return Array.isArray(v)?v.join(', '):(v||''); }
+function openView(){
+  const o=collect();
+  const alg=[o.alerg_meds,o.alerg_foods,o.alerg_insects,o.alerg_env,o.alerg_other,o.alerg_latex==='Sí'?'Látex':''].filter(Boolean).join(', ');
+  const meds=(o.medicamentos||[]).map(m=>[m.nombre,m.dosis,m.frecuencia].filter(Boolean).join(' — ')).join('; ');
+  const cirs=(o.cirugias||[]).map(c=>[c.fecha,c.descripcion].filter(Boolean).join(': ')).join('; ');
+  const s=`<h2>${esc(o.nombre||'Sin nombre')}</h2><div class="sub">ID ${esc(o.id)} · actualizado ${o.actualizado?new Date(o.actualizado).toLocaleString('es'):'—'}</div>
+    ${alg?'<div class="alertbox"><b>⚠ ALERGIAS:</b> '+esc(alg)+(o.alerg_severity?' ('+esc(o.alerg_severity)+')':'')+(o.alerg_reaction?'<br>'+esc(o.alerg_reaction):'')+'</div>':''}
+    <h3>Identificación</h3><dl class="kv">
+    ${field('Documento',[o.docTipo,o.docNumero].filter(Boolean).join(' '))}
+    ${field('Nacimiento',o.fechaNac?(o.fechaNac+(age(o.fechaNac)?' ('+age(o.fechaNac)+' años)':'')):'')}
+    ${field('Sexo',o.sexo)}${field('Nacionalidad',o.nacionalidad)}${field('Teléfono',o.telefono)}
+    ${field('Email',o.email)}${field('Dirección',o.direccion)}${field('Ocupación',o.ocupacion)}
+    </dl>
+    <h3>Sangre y servicios de emergencia</h3><dl class="kv">
+    ${field('Grupo sanguíneo',(o.sangreGrupo||'No consta')+(o.sangreRh||''))}
+    ${field('Donante de órganos',o.donante)}${field('Altura / peso',[o.altura&&o.altura+' cm',o.peso&&o.peso+' kg'].filter(Boolean).join(' / '))}
+    ${field('Sangre — observaciones',o.sangreNotas)}
+    ${field('Contacto de emergencia',[o.contactoNombre,o.contactoRel,o.contactoTel,o.contactoTel2].filter(Boolean).join(' · '))}
+    ${field('Email de contacto',o.contactoEmail)}
+    </dl>
+    <h3>Salud</h3><dl class="kv">
+    ${field('Condiciones',[listVal(o.condiciones),o.condicionesOtras].filter(Boolean).join(', '))}
+    ${field('Notas de condiciones',o.condicionesNotas)}
+    ${field('Medicamentos',meds)}${field('Cirugías / antecedentes',cirs)}
+    ${field('Antecedentes familiares',o.antecedentesFam)}
+    ${field('Vacunas',[listVal(o.vacunas),o.vacunasOtras].filter(Boolean).join(', '))}
+    ${field('Notas de vacunas',o.vacunasNotas)}
+    ${field('Dispositivos',[listVal(o.dispositivos),o.dispositivosNotas].filter(Boolean).join(', '))}
+    ${field('Necesidades',[listVal(o.necesidades),o.necesidadesNotas].filter(Boolean).join(', '))}
+    ${field('Directrices',[listVal(o.directrices),o.directricesNotas].filter(Boolean).join(', '))}
+    ${field('Obra social / seguro',[o.seguroTipo,o.seguroAseguradora,o.seguroPoliza,o.seguroVigencia].filter(Boolean).join(' · '))}
+    ${field('Notas generales',o.notas)}${field('Registrado por',o.actualizadoPor)}
+    </dl>
+    <div style="margin-top:18px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn primary" onclick="window.print()">🖨 Imprimir ficha</button>
+      <button class="btn" onclick="document.getElementById('modal').classList.remove('open')">Cerrar</button>
+    </div>`;
+  $('#sheet').innerHTML=s; $('#modal').classList.add('open');
+}
+$('#modal').onclick=e=>{ if(e.target.id==='modal') $('#modal').classList.remove('open'); };
+
+function updateAge(){ $('#edad').value=age($('#fechaNac').value)||''; }
+function updateHeader(){ $('#idPill').textContent='ID: '+(currentId||'—'); }
+
+function newFicha(){
+  if(confirm('¿Crear una ficha nueva? Se descartarán los datos sin guardar.')){
+    form.reset(); currentId=newId(records.length+1); $('#medRows').innerHTML=''; $('#cirRows').innerHTML='';
+    $('#actualizado').value=''; updateAge(); updateHeader(); renderQR();
+    $('#saveState').textContent='Borrador local'; localStorage.removeItem('fm_draft');
+    toast('Nueva ficha: '+currentId);
+  }
+}
+
+/* ---------- PDF generado sin librerías externas ---------- */
+const f2=n=>Math.round(n*100)/100;
+function pdfEnc(s){
+  let out='';
+  for(const ch of String(s==null?'':s)){
+    const c=ch.codePointAt(0);
+    out += c<=255 ? String.fromCharCode(c) : '?';
+  }
+  return out.replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)');
+}
+function wrapText(s,max){
+  const words=String(s||'').split(/\s+/), out=[]; let cur='';
+  for(const w of words){
+    if((cur+' '+w).trim().length>max){ if(cur) out.push(cur); cur=w; }
+    else cur=(cur+' '+w).trim();
+  }
+  if(cur) out.push(cur);
+  return out.length?out:[''];
+}
+function qrPdfCommands(qr,x0,y0,size){
+  const q=qr && qr._oQRCode;
+  if(!q) return '';
+  const n=q.getModuleCount(), cell=size/(n+8);
+  let s='1 1 1 rg '+f2(x0-4*cell)+' '+f2(y0-4*cell)+' '+f2(size+8*cell)+' '+f2(size+8*cell)+' re f\n0 0 0 rg ';
+  for(let r=0;r<n;r++) for(let c=0;c<n;c++){
+    if(q.isDark(r,c)) s+=f2(x0+c*cell)+' '+f2(y0+(n-1-r)*cell)+' '+f2(cell+0.25)+' '+f2(cell+0.25)+' re f ';
+  }
+  return s+'\n';
+}
+function makePDF(o){
+  const W=595.28,H=841.89,M=42,QR_MIN=225;
+  let pages=[],c=[],y=H-92;
+  const txt=(s,x,yy,size,bold,rgb)=>c.push('BT '+(rgb||'0.12 0.12 0.12')+' rg /'+(bold?'F2':'F1')+' '+size+' Tf '+f2(x)+' '+f2(yy)+' Td ('+pdfEnc(s)+') Tj ET');
+  const rect=(x,yy,w,h,rgb)=>c.push(rgb+' rg '+f2(x)+' '+f2(yy)+' '+f2(w)+' '+f2(h)+' re f');
+  const rule=yy=>c.push('0.78 0.78 0.78 RG 0.7 w '+M+' '+f2(yy)+' m '+(W-M)+' '+f2(yy)+' l S');
+  const ensure=h=>{ if(y-h < (pages.length===0?QR_MIN:M)){ pages.push(c.join('\n')); c=[]; y=H-M; } };
+  const section=t=>{ ensure(44); y-=14; txt(t,M,y,11,true,'0.05 0.45 0.56'); rule(y-5); y-=17; };
+  const kv=(k,v)=>{ if(!v) return; const ch=wrapText(v,82); ensure(12+13*(ch.length-1)); txt(k,M,y,8.5,true,'0.35 0.35 0.35'); ch.forEach((v2,i)=>txt(v2,M+118,y-13*i,9,false)); y-=13*ch.length+4; };
+  const listv=v=>Array.isArray(v)?v.join(', '):(v||'');
+
+  rect(0,H-74,W,74,'0.05 0.45 0.56');
+  txt('FICHA MEDICA DE EMERGENCIA',M,H-27,15,true,'1 1 1');
+  txt(o.nombre||'SIN NOMBRE',M,H-48,12,true,'1 1 1');
+  txt('ID '+(o.id||'-')+'   |   Sangre: '+((o.sangreGrupo||'?')+(o.sangreRh||'')),M,H-64,9,false,'0.86 0.96 0.98');
+
+  const alg=[o.alerg_meds,o.alerg_foods,o.alerg_insects,o.alerg_env,o.alerg_other,o.alerg_latex==='Sí'?'Latex':''].filter(Boolean).join(', ');
+  if(alg){
+    const ch=wrapText(alg,78), h=18+13*ch.length;
+    ensure(h+10); rect(M,y-h+10,W-2*M,h,'1 0.94 0.94');
+    txt('ALERGIAS'+(o.alerg_severity?' ('+o.alerg_severity+')':''),M+8,y-4,10,true,'0.75 0.1 0.1');
+    ch.forEach((v2,i)=>txt(v2,M+8,y-19-13*i,9,false,'0.5 0.1 0.1'));
+    y-=h+6;
+  }
+  if(o.alerg_reaction) kv('Reaction / conducta',o.alerg_reaction);
+
+  section('Identificacion');
+  kv('Documento',[o.docTipo,o.docNumero].filter(Boolean).join(' '));
+  kv('Nacimiento',o.fechaNac?(o.fechaNac+(age(o.fechaNac)?' ('+age(o.fechaNac)+' anios)':'')):'');
+  kv('Sexo',o.sexo); kv('Nacionalidad',o.nacionalidad); kv('Telefono',o.telefono);
+  kv('Email',o.email); kv('Direccion',o.direccion); kv('Ocupacion',o.ocupacion);
+
+  section('Sangre y emergencias');
+  kv('Grupo / Rh',(o.sangreGrupo||'No consta')+(o.sangreRh||''));
+  kv('Donante de organos',o.donante);
+  kv('Altura / peso',[o.altura&&o.altura+' cm',o.peso&&o.peso+' kg'].filter(Boolean).join(' / '));
+  kv('Observaciones de sangre',o.sangreNotas);
+  kv('Contacto de emergencia',[o.contactoNombre,o.contactoRel,o.contactoTel,o.contactoTel2].filter(Boolean).join(' | '));
+  kv('Email de contacto',o.contactoEmail);
+
+  section('Salud');
+  kv('Condiciones',[listv(o.condiciones),o.condicionesOtras].filter(Boolean).join(', '));
+  kv('Detalle de condiciones',o.condicionesNotas);
+  kv('Medicamentos',(o.medicamentos||[]).map(m=>[m.nombre,m.dosis,m.frecuencia].filter(Boolean).join(' ')).join('; '));
+  kv('Cirugias / antecedentes',(o.cirugias||[]).map(x=>[x.fecha,x.descripcion].filter(Boolean).join(': ')).join('; '));
+  kv('Antecedentes familiares',o.antecedentesFam);
+  kv('Vacunas',[listv(o.vacunas),o.vacunasOtras].filter(Boolean).join(', '));
+  kv('Notas de vacunas',o.vacunasNotas);
+  kv('Dispositivos / implantes',[listv(o.dispositivos),o.dispositivosNotas].filter(Boolean).join(', '));
+  kv('Necesidades especiales',[listv(o.necesidades),o.necesidadesNotas].filter(Boolean).join(', '));
+  kv('Directrices',[listv(o.directrices),o.directricesNotas].filter(Boolean).join(' | '));
+  kv('Obra social / seguro',[o.seguroTipo,o.seguroAseguradora,o.seguroPoliza,o.seguroVigencia].filter(Boolean).join(' | '));
+  kv('Notas generales',o.notas);
+  kv('Registrado por',o.actualizadoPor);
+  kv('Ultima actualizacion',o.actualizado?new Date(o.actualizado).toLocaleString('es'):'');
+
+  txt('Escanee el codigo para ver los datos esenciales en cualquier celular.',M,32,8,false,'0.4 0.4 0.4');
+  pages.push(c.join('\n'));
+  if(pages[0]) pages[0]+='\n'+qrPdfCommands(qrInstance,W-M-122,52,120);
+
+  const objs=[];
+  objs[1]='<< /Type /Catalog /Pages 2 0 R >>';
+  objs[2]='<< /Type /Pages /Kids ['+pages.map((_,i)=>(3+i*4)+' 0 R').join(' ')+'] /Count '+pages.length+' >>';
+  pages.forEach((ct,i)=>{
+    const p=3+i*4, co=4+i*4, f1=5+i*4, fb=6+i*4;
+    objs[p]='<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+W+' '+H+'] /Resources << /Font << /F1 '+f1+' 0 R /F2 '+fb+' 0 R >> >> /Contents '+co+' 0 R >>';
+    objs[co]='<< /Length '+ct.length+' >>\nstream\n'+ct+'\nendstream';
+    objs[f1]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
+    objs[fb]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
+  });
+  let pdf='%PDF-1.4\n',off=[0];
+  for(let i=1;i<objs.length;i++){ off[i]=pdf.length; pdf+=i+' 0 obj\n'+objs[i]+'\nendobj\n'; }
+  const xr=pdf.length;
+  pdf+='xref\n0 '+objs.length+'\n0000000000 65535 f \n';
+  for(let i=1;i<objs.length;i++) pdf+=String(off[i]).padStart(10,'0')+' 00000 n \n';
+  pdf+='trailer\n<< /Size '+objs.length+' /Root 1 0 R >>\nstartxref\n'+xr+'\n%%EOF';
+  const bytes=new Uint8Array(pdf.length);
+  for(let i=0;i<pdf.length;i++) bytes[i]=pdf.charCodeAt(i)&0xff;
+  return new Blob([bytes],{type:'application/pdf'});
+}
+
+/* ---------- QR de acceso al formulario ---------- */
+function renderLinkQr(){
+  const url=$('#linkUrl').value.trim();
+  const box=$('#linkQr'); box.innerHTML=''; linkQrInstance=null;
+  if(!/^https?:\/\//i.test(url)){
+    box.innerHTML='<div class="empty">Pegá una URL que empiece con https://</div>';
+    return;
+  }
+  try{
+    linkQrInstance=new QRCode(box,{text:url,width:180,height:180,colorDark:'#0f172a',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+  }catch(e){
+    box.innerHTML='<div class="empty">La URL es demasiado larga.</div>';
+  }
+}
+
+/* ---------- eventos ---------- */
+form.addEventListener('input',()=>{
+  updateAge(); renderQR();
+  $('#saveState').textContent='Borrador local';
+  if(localDraft){ try{ localStorage.setItem('fm_draft',JSON.stringify(collect())); }catch(e){} }
+});
+$('#btnFolder').onclick=pickFolder;
+$('#btnSave').onclick=saveRecord;
+$('#btnNew').onclick=newFicha;
+$('#btnView').onclick=openView;
+$('#btnRefresh').onclick=async()=>{ await loadRecords(); toast('Lista actualizada.'); };
+$('#search').oninput=renderList;
+$('#btnCopy').onclick=async()=>{
+  try{ await navigator.clipboard.writeText($('#qrText').value); toast('Datos del QR copiados.'); }
+  catch(e){ $('#qrText').select(); document.execCommand('copy'); toast('Datos copiados.'); }
+};
+$('#btnQrPng').onclick=()=>{
+  const u=qrDataUrl(); if(!u){toast('Generá el QR primero.');return;}
+  download(u,safeName(collect().nombre,currentId)+'_QR.png');
+};
+$('#btnJson').onclick=()=>{
+  download(URL.createObjectURL(new Blob([JSON.stringify(collect(),null,2)],{type:'application/json'})),safeName(collect().nombre,currentId)+'.json');
+};
+$('#btnPdf').onclick=()=>{
+  const o=collect();
+  download(URL.createObjectURL(makePDF(o)),safeName(o.nombre,currentId)+'.pdf');
+  toast('PDF listo para enviar por WhatsApp.');
+};
+$('#btnWhats').onclick=()=>{
+  const txt=buildQrText(collect());
+  window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank','noopener,noreferrer');
+};
+$('#btnShare').onclick=async()=>{
+  const o=collect(), blob=makePDF(o);
+  const file=new File([blob],safeName(o.nombre,currentId)+'.pdf',{type:'application/pdf'});
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    try{
+      await navigator.share({files:[file],title:'Ficha médica',text:'Ficha médica de '+(o.nombre||'')});
+      return;
+    }catch(e){ if(e.name==='AbortError') return; }
+  }
+  download(URL.createObjectURL(blob),file.name);
+  toast('PDF descargado. Buscalo en Descargas o Archivos.');
+};
+$('#linkUrl').oninput=renderLinkQr;
+$('#btnLinkQr').onclick=renderLinkQr;
+$('#btnLinkPng').onclick=()=>{
+  if(!linkQrInstance){ toast('Generá primero el QR de acceso.'); return; }
+  const c=$('#linkQr canvas');
+  if(c) download(c.toDataURL('image/png'),'QR_acceso_ficha_medica.png');
+};
+window.addEventListener('keydown',e=>{ if(e.key==='Escape') $('#modal').classList.remove('open'); });
+
+/* ---------- inicio ---------- */
+currentId=newId(1);
+updateHeader();
+$('#linkUrl').value=/^https?:/i.test(location.href)?location.href:'';
+renderLinkQr();
+(async()=>{
+  const h=await readHandle();
+  if(h){
+    dirHandle=h;
+    $('#folderBox').innerHTML='Carpeta: <b>'+esc(h.name)+'</b><br>Los archivos se guardan ahí.';
+    try{ await loadRecords(); }catch(e){}
+  }
+  if(localDraft){
+    try{
+      const d=localStorage.getItem('fm_draft');
+      if(d) fill(JSON.parse(d));
+    }catch(e){}
+  }
+  if(!currentId) currentId=newId(records.length+1);
+  updateHeader(); renderQR(); renderList();
+})();
+</script>
+</body>
+</html>
