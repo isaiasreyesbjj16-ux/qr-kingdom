@@ -112,6 +112,8 @@
   .firmaview{margin-top:8px;text-align:center}
   .firmaview img{max-width:280px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px}
   .firmaview span{display:block;font-size:11px;color:var(--muted);margin-top:4px}
+  .contrato{background:#fbfbf7;border:1px solid var(--line);border-left:4px solid var(--lime);border-radius:9px;padding:11px 13px;font-size:12px;line-height:1.55;max-height:230px;overflow:auto;white-space:pre-wrap;color:#333}
+  .modal .contrato{max-height:340px}
   @media print{
     .topbar,.side,.right,.modal,.rowbox .link,.btn,.foot{display:none!important}
     .layout{display:block;padding:0}
@@ -119,6 +121,12 @@
     details{border:0;margin:0 0 10px}
     details>summary{background:#eef2f7!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
     input,select,textarea{border:0;border-bottom:1px solid #ccc;background:transparent}
+    .radios input{position:static!important;width:auto!important;height:auto!important;opacity:1!important}
+    .radios label{border:1px solid #999!important;background:#fff!important;color:#000!important;box-shadow:none!important}
+    .radios label:has(input:checked){font-weight:800}
+    .autbadge{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .contrato{max-height:none!important;overflow:visible!important}
+    #firma{border:1px solid #999!important}
     body{background:#fff}
   }
 </style>
@@ -363,7 +371,16 @@
       </details>
 
       <details>
-        <summary><span class="num">13</span> Notas finales y actualización</summary>
+        <summary><span class="num">13</span> Contrato de exención de responsabilidad</summary>
+        <div class="sec">
+          <div class="contrato" id="contratoBox"></div>
+          <label class="chk" style="margin-top:10px"><input type="checkbox" name="contratoOk" value="Sí" id="contratoChk"> He leído, comprendo y acepto íntegramente el contrato (en nombre propio o del menor a mi cargo)</label>
+          <div class="autbar"><span class="autbadge" id="contratoBadge"></span></div>
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="num">14</span> Notas finales y actualización</summary>
         <div class="sec grid">
           <div class="f wide"><label>Instrucciones generales para el personal de emergencia</label><textarea name="notas" placeholder="Ej. Tomar medicamentos con alimentos. Llevar siempre la tarjeta."></textarea></div>
           <div class="f"><label>Registrado / actualizado por</label><input name="actualizadoPor"></div>
@@ -495,6 +512,7 @@ function collect(){
   }).filter(Boolean);
   o.autOk=autOkTs;
   o.firma=firmaData;
+  o.contratoFecha=contratoTs;
   o.actualizado=new Date().toISOString();
   return o;
 }
@@ -510,13 +528,35 @@ function fill(o){
   $('#cirRows').innerHTML=''; (o.cirugias||[]).forEach(c=>$('#cirRows').appendChild(cirRow(c)));
   $('#actualizado').value=o.actualizado ? new Date(o.actualizado).toLocaleString('es') : '';
   autOkTs=o.autOk||''; updateAutBadge();
+  contratoTs=o.contratoFecha||''; updateContratoBadge();
   restaurarFirma(o.firma);
   updateAge();
 }
 
 /* ---------- firma virtual + autorización de imagen ---------- */
 const firmaCv=$('#firma'), firmaCtx=firmaCv.getContext('2d');
-let firmaDrawing=false, firmaData='', autOkTs='';
+let firmaDrawing=false, firmaData='', autOkTs='', contratoTs='';
+const CONTRATO_TEXTO=`CONTRATO DE EXENCIÓN DE RESPONSABILIDAD
+
+Por medio del presente documento, el/la usuario/a, o el padre, madre o tutor en el caso de menores de edad, declara haber leído, comprendido y aceptado en su totalidad las siguientes cláusulas:
+
+1. El gimnasio (KINGDOM) no se hace responsable de accidentes, lesiones, golpes, caídas, problemas cardíacos, mareos, desmayos ni de cualquier otra consecuencia derivada de la práctica de ejercicios, del uso de máquinas, pesas, aparatos o de las instalaciones, sea por uso incorrecto, falta de atención del usuario o por causas ajenas al establecimiento.
+
+2. El gimnasio no se hace responsable de la aparición o el empeoramiento de padecimientos, enfermedades o condiciones médicas preexistentes o latentes del usuario, ni de reacciones derivadas de dichas condiciones durante o después de la actividad física.
+
+3. El usuario declara encontrarse en condiciones físicas y de salud aptas para la actividad física, o haber obtenido la aprobación de un profesional de la salud, y asume todos los riesgos asociados a dicha práctica.
+
+4. El gimnasio no se hace responsable de la pérdida, el robo o el daño de objetos personales dejados en vestuarios, cajas de seguridad, estacionamiento o cualquier otra zona de las instalaciones.
+
+5. El gimnasio no se hace responsable de daños ocasionados a terceros por el usuario, ni de conductas inadecuadas, negligentes o violentas del usuario dentro o fuera del establecimiento.
+
+6. El usuario se compromete a respetar las normas de convivencia, las indicaciones del personal y los horarios establecidos. El incumplimiento podrá dar lugar a la suspensión o cancelación de la membresía sin derecho a reembolso.
+
+7. En el caso de menores de edad, el padre, madre o tutor autoriza su asistencia, acepta este contrato en su nombre y se hace responsable de su conducta y de su seguridad.
+
+8. Cualquier diferencia derivada del presente contrato se resolverá conforme a las leyes de la República Argentina, renunciando las partes a cualquier otro fuero o jurisdicción que pudiera corresponderles.
+
+El usuario declara haber leído, comprendido y aceptado íntegramente todas y cada una de las cláusulas del presente contrato, quedando plenamente vinculado por el mismo.`;
 function firmaResetCanvas(){
   firmaCtx.fillStyle='#fff';
   firmaCtx.fillRect(0,0,firmaCv.width,firmaCv.height);
@@ -547,10 +587,21 @@ function updateAutBadge(){
 function invalidarAut(msg){
   if(autOkTs){ autOkTs=''; updateAutBadge(); if(msg) toast(msg); }
 }
+function updateContratoBadge(){
+  const b=$('#contratoBadge');
+  if(contratoTs){ b.textContent='Contrato aceptado el '+new Date(contratoTs).toLocaleString('es'); b.classList.add('on'); }
+  else { b.textContent=''; b.classList.remove('on'); }
+}
+$('#contratoChk').addEventListener('change',e=>{
+  contratoTs=e.target.checked?new Date().toISOString():'';
+  updateContratoBadge();
+  toast(e.target.checked?'Contrato aceptado ✓':'Contrato desmarcado.');
+});
 function firmaXY(e){
   const r=firmaCv.getBoundingClientRect();
   return {x:(e.clientX-r.left)*firmaCv.width/r.width, y:(e.clientY-r.top)*firmaCv.height/r.height};
 }
+$('#contratoBox').textContent=CONTRATO_TEXTO;
 firmaResetCanvas();
 firmaCv.addEventListener('pointerdown',e=>{
   firmaDrawing=true;
@@ -847,6 +898,11 @@ function openView(){
     ${field('Confirmación (botón OK)',o.autOk?new Date(o.autOk).toLocaleString('es'):'Pendiente de confirmar')}
     </dl>
     ${(o.firma&&o.firma.indexOf('data:image/')===0)?`<div class="firmaview"><img src="${o.firma}" alt="Firma"><span>Firma del padre, madre o tutor</span></div>`:''}
+    <h3>Contrato de exención de responsabilidad</h3><dl class="kv">
+    ${field('Aceptación del contrato',o.contratoFecha?'Sí — aceptado el '+new Date(o.contratoFecha).toLocaleString('es'):'No aceptado')}
+    ${field('Aceptado por',[o.firmaNombre,o.firmaDni?('DNI '+o.firmaDni):''].filter(Boolean).join(' · '))}
+    </dl>
+    <div class="contrato">${esc(CONTRATO_TEXTO)}</div>
     <div style="margin-top:18px;display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn primary" onclick="window.print()">🖨 Imprimir ficha</button>
       <button class="btn" onclick="document.getElementById('modal').classList.remove('open')">Cerrar</button>
@@ -861,7 +917,7 @@ function updateHeader(){ $('#idPill').textContent='ID: '+(currentId||'—'); }
 function newFicha(){
   if(confirm('¿Crear una ficha nueva? Se descartarán los datos sin guardar.')){
     form.reset(); currentId=newId(records.length+1); $('#medRows').innerHTML=''; $('#cirRows').innerHTML='';
-    $('#actualizado').value=''; autOkTs=''; updateAutBadge(); restaurarFirma(''); updateAge(); updateHeader(); renderQR();
+    $('#actualizado').value=''; autOkTs=''; updateAutBadge(); contratoTs=''; updateContratoBadge(); restaurarFirma(''); updateAge(); updateHeader(); renderQR();
     $('#saveState').textContent='Borrador local'; localStorage.removeItem('fm_draft');
     toast('Nueva ficha: '+currentId);
   }
@@ -972,6 +1028,17 @@ function makePDF(o){
     txt('Firma del padre, madre o tutor',M,y-14,8.5,true,'0.35 0.35 0.35');
     y-=30;
   }
+
+  section('Contrato de exencion de responsabilidad');
+  kv('Contrato aceptado',o.contratoFecha?new Date(o.contratoFecha).toLocaleString('es'):'No aceptado');
+  kv('Aceptado por',[o.firmaNombre,o.firmaDni?('DNI '+o.firmaDni):''].filter(Boolean).join('  |  '));
+  String(CONTRATO_TEXTO||'').split('\n').forEach(line=>{
+    const t=line.trim();
+    if(!t){ ensure(12); y-=7; return; }
+    wrapText(t,96).forEach(ln=>{ ensure(13); txt(ln,M,y,8.5,false,'0.2 0.2 0.2'); y-=11.5; });
+    y-=3;
+  });
+  y-=6;
 
   txt('Escanee el codigo para ver los datos esenciales en cualquier celular.',M,32,8,false,'0.4 0.4 0.4');
   pages.push(c.join('\n'));
