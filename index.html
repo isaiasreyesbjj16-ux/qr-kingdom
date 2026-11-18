@@ -96,6 +96,22 @@
   .kv dt{color:var(--muted)}
   .kv dd{margin:0;font-weight:600;word-break:break-word}
   .alertbox{background:#fef2f2;border:1px solid #fecaca;border-radius:9px;padding:10px;margin:10px 0;font-size:13px}
+  .autrow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:640px){.autrow{grid-template-columns:1fr}}
+  .radios{display:flex;gap:8px}
+  .radios label{position:relative;flex:1;display:flex;align-items:center;justify-content:center;gap:6px;border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:10px 8px;cursor:pointer;font-weight:600;font-size:13px;transition:.15s;user-select:none}
+  .radios label:hover{border-color:#9ecc00}
+  .radios label:has(input:checked){background:#111;color:var(--lime);border-color:#111;box-shadow:0 0 0 3px rgba(194,240,0,.25)}
+  .radios label:has(input:focus-visible){outline:2px solid #7fa300;outline-offset:2px}
+  .radios input{position:absolute;width:0;height:0;opacity:0;pointer-events:none}
+  #firma{width:100%;max-width:520px;height:auto;display:block;background:#fff;border:2px dashed #b9c4d4;border-radius:10px;touch-action:none;cursor:crosshair}
+  #firma.signed{border-style:solid;border-color:#9ecc00}
+  .autbar{display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
+  .autbadge{font-size:12px;font-weight:700;color:#3f4d00;background:#f1ffcb;border:1px solid #7fa300;border-radius:999px;padding:5px 11px;display:none}
+  .autbadge.on{display:inline-block}
+  .firmaview{margin-top:8px;text-align:center}
+  .firmaview img{max-width:280px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px}
+  .firmaview span{display:block;font-size:11px;color:var(--muted);margin-top:4px}
   @media print{
     .topbar,.side,.right,.modal,.rowbox .link,.btn,.foot{display:none!important}
     .layout{display:block;padding:0}
@@ -308,7 +324,46 @@
       </details>
 
       <details>
-        <summary><span class="num">12</span> Notas finales y actualización</summary>
+        <summary><span class="num">12</span> Autorización de imagen y firma</summary>
+        <div class="sec">
+          <p class="hint" style="margin-top:0">Marcar <b>Sí</b> o <b>No</b> para cada caso, completar el <b>DNI</b> y el <b>nombre completo</b> del padre, madre o tutor, <b>firmar</b> en el recuadro y confirmar con el botón <b>OK</b>.</p>
+          <div class="autrow" style="margin-top:8px">
+            <div class="f">
+              <label>Alumnos adultos — ¿se pueden grabar para videos publicitarios?</label>
+              <div class="radios">
+                <label><input type="radio" name="autAdultos" value="Sí"> Sí, autoriza</label>
+                <label><input type="radio" name="autAdultos" value="No"> No autoriza</label>
+              </div>
+            </div>
+            <div class="f">
+              <label>Menores de edad — ¿se pueden grabar para videos publicitarios?</label>
+              <div class="radios">
+                <label><input type="radio" name="autMenores" value="Sí"> Sí, autoriza</label>
+                <label><input type="radio" name="autMenores" value="No"> No autoriza</label>
+              </div>
+            </div>
+          </div>
+          <div class="grid" style="margin-top:12px">
+            <div class="f"><label>DNI del padre, madre o tutor</label><input id="firmaDni" name="firmaDni" placeholder="Ej. 30.123.456"></div>
+            <div class="f"><label>Nombre completo del padre, madre o tutor</label><input id="firmaNombre" name="firmaNombre" placeholder="Ej. María González"></div>
+          </div>
+          <div class="f" style="margin-top:14px">
+            <label>Firma del padre, madre o tutor (dibujar con el dedo o el mouse)</label>
+            <canvas id="firma" width="640" height="200"></canvas>
+          </div>
+          <div class="autbar">
+            <button type="button" class="btn sm" id="btnFirmaClear">🧹 Limpiar firma</button>
+            <span class="hint" id="firmaState" style="margin:0">Sin firmar</span>
+          </div>
+          <div class="autbar">
+            <button type="button" class="btn primary" id="btnAutOk">✅ OK — Confirmar autorización</button>
+            <span class="autbadge" id="autBadge"></span>
+          </div>
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="num">13</span> Notas finales y actualización</summary>
         <div class="sec grid">
           <div class="f wide"><label>Instrucciones generales para el personal de emergencia</label><textarea name="notas" placeholder="Ej. Tomar medicamentos con alimentos. Llevar siempre la tarjeta."></textarea></div>
           <div class="f"><label>Registrado / actualizado por</label><input name="actualizadoPor"></div>
@@ -438,6 +493,8 @@ function collect(){
     const x={}; $$('[data-field]',r).forEach(i=>x[i.dataset.field]=i.value.trim());
     return x.fecha||x.descripcion ? x : null;
   }).filter(Boolean);
+  o.autOk=autOkTs;
+  o.firma=firmaData;
   o.actualizado=new Date().toISOString();
   return o;
 }
@@ -452,8 +509,95 @@ function fill(o){
   $('#medRows').innerHTML=''; (o.medicamentos||[]).forEach(m=>$('#medRows').appendChild(medRow(m)));
   $('#cirRows').innerHTML=''; (o.cirugias||[]).forEach(c=>$('#cirRows').appendChild(cirRow(c)));
   $('#actualizado').value=o.actualizado ? new Date(o.actualizado).toLocaleString('es') : '';
+  autOkTs=o.autOk||''; updateAutBadge();
+  restaurarFirma(o.firma);
   updateAge();
 }
+
+/* ---------- firma virtual + autorización de imagen ---------- */
+const firmaCv=$('#firma'), firmaCtx=firmaCv.getContext('2d');
+let firmaDrawing=false, firmaData='', autOkTs='';
+function firmaResetCanvas(){
+  firmaCtx.fillStyle='#fff';
+  firmaCtx.fillRect(0,0,firmaCv.width,firmaCv.height);
+  firmaCtx.strokeStyle='#111';
+  firmaCtx.lineWidth=3;
+  firmaCtx.lineCap='round';
+  firmaCtx.lineJoin='round';
+}
+function restaurarFirma(url){
+  firmaResetCanvas();
+  firmaData='';
+  firmaCv.classList.remove('signed');
+  $('#firmaState').textContent='Sin firmar';
+  if(url&&url.indexOf('data:image/')===0){
+    const im=new Image();
+    im.onload=()=>{ try{ firmaCtx.drawImage(im,0,0,firmaCv.width,firmaCv.height); }catch(e){} };
+    im.src=url;
+    firmaData=url;
+    firmaCv.classList.add('signed');
+    $('#firmaState').textContent='Firmado ✓';
+  }
+}
+function updateAutBadge(){
+  const b=$('#autBadge');
+  if(autOkTs){ b.textContent='Autorizado el '+new Date(autOkTs).toLocaleString('es'); b.classList.add('on'); }
+  else { b.textContent=''; b.classList.remove('on'); }
+}
+function invalidarAut(msg){
+  if(autOkTs){ autOkTs=''; updateAutBadge(); if(msg) toast(msg); }
+}
+function firmaXY(e){
+  const r=firmaCv.getBoundingClientRect();
+  return {x:(e.clientX-r.left)*firmaCv.width/r.width, y:(e.clientY-r.top)*firmaCv.height/r.height};
+}
+firmaResetCanvas();
+firmaCv.addEventListener('pointerdown',e=>{
+  firmaDrawing=true;
+  try{ firmaCv.setPointerCapture(e.pointerId); }catch(err){}
+  const p=firmaXY(e);
+  firmaCtx.beginPath(); firmaCtx.moveTo(p.x,p.y); firmaCtx.lineTo(p.x+.1,p.y); firmaCtx.stroke();
+  e.preventDefault();
+});
+firmaCv.addEventListener('pointermove',e=>{
+  if(!firmaDrawing) return;
+  const p=firmaXY(e);
+  firmaCtx.lineTo(p.x,p.y); firmaCtx.stroke();
+  e.preventDefault();
+});
+['pointerup','pointercancel','pointerleave'].forEach(ev=>firmaCv.addEventListener(ev,()=>{
+  if(!firmaDrawing) return;
+  firmaDrawing=false;
+  firmaCtx.closePath();
+  firmaData=firmaCv.toDataURL('image/jpeg',0.9);
+  firmaCv.classList.add('signed');
+  $('#firmaState').textContent='Firmado ✓';
+  invalidarAut('La firma cambió: volvé a confirmar con OK.');
+}));
+$('#btnFirmaClear').onclick=()=>{
+  firmaResetCanvas();
+  firmaData='';
+  firmaCv.classList.remove('signed');
+  $('#firmaState').textContent='Sin firmar';
+  invalidarAut('Se borró la firma: volvé a confirmar con OK.');
+};
+$('#btnAutOk').onclick=()=>{
+  const a=form.querySelector('input[name=autAdultos]:checked');
+  const m=form.querySelector('input[name=autMenores]:checked');
+  if(!a||!m){ toast('Elegí Sí/No para alumnos adultos y para menores.'); return; }
+  if(!$('#firmaDni').value.trim()){ toast('Ingresá el DNI del padre, madre o tutor.'); return; }
+  if(!$('#firmaNombre').value.trim()){ toast('Ingresá el nombre completo del padre, madre o tutor.'); return; }
+  if(!firmaData){ toast('Firmá en el recuadro antes de confirmar.'); return; }
+  autOkTs=new Date().toISOString();
+  updateAutBadge();
+  toast('Autorización de imagen confirmada ✓');
+};
+$$('input[name=autAdultos],input[name=autMenores]').forEach(r=>r.addEventListener('change',()=>{
+  invalidarAut('Cambio en la autorización: volvé a confirmar con OK.');
+}));
+$$('input[name=firmaDni],input[name=firmaNombre]').forEach(inp=>inp.addEventListener('input',()=>{
+  invalidarAut('Se modificó el dato del firmante: volvé a confirmar con OK.');
+}));
 
 /* ---------- texto del QR ---------- */
 function buildQrText(o){
@@ -696,6 +840,13 @@ function openView(){
     ${field('Obra social / seguro',[o.seguroTipo,o.seguroAseguradora,o.seguroPoliza,o.seguroVigencia].filter(Boolean).join(' · '))}
     ${field('Notas generales',o.notas)}${field('Registrado por',o.actualizadoPor)}
     </dl>
+    <h3>Autorización de imagen y firma</h3><dl class="kv">
+    ${field('Alumnos adultos — grabación',o.autAdultos)}
+    ${field('Menores de edad — grabación',o.autMenores)}
+    ${field('DNI del tutor',o.firmaDni)}${field('Nombre del tutor',o.firmaNombre)}
+    ${field('Confirmación (botón OK)',o.autOk?new Date(o.autOk).toLocaleString('es'):'Pendiente de confirmar')}
+    </dl>
+    ${(o.firma&&o.firma.indexOf('data:image/')===0)?`<div class="firmaview"><img src="${o.firma}" alt="Firma"><span>Firma del padre, madre o tutor</span></div>`:''}
     <div style="margin-top:18px;display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn primary" onclick="window.print()">🖨 Imprimir ficha</button>
       <button class="btn" onclick="document.getElementById('modal').classList.remove('open')">Cerrar</button>
@@ -710,7 +861,7 @@ function updateHeader(){ $('#idPill').textContent='ID: '+(currentId||'—'); }
 function newFicha(){
   if(confirm('¿Crear una ficha nueva? Se descartarán los datos sin guardar.')){
     form.reset(); currentId=newId(records.length+1); $('#medRows').innerHTML=''; $('#cirRows').innerHTML='';
-    $('#actualizado').value=''; updateAge(); updateHeader(); renderQR();
+    $('#actualizado').value=''; autOkTs=''; updateAutBadge(); restaurarFirma(''); updateAge(); updateHeader(); renderQR();
     $('#saveState').textContent='Borrador local'; localStorage.removeItem('fm_draft');
     toast('Nueva ficha: '+currentId);
   }
@@ -764,6 +915,8 @@ function makePDF(o){
   let logoBin=null;
   try{ if(typeof KINGDOM_LOGO==='string'&&KINGDOM_LOGO.indexOf('base64,')>0) logoBin=atob(KINGDOM_LOGO.split('base64,')[1]); }catch(e){ logoBin=null; }
   if(logoBin){ const LW=54,LH=LW*196/192; c.push('q '+f2(LW)+' 0 0 '+f2(LH)+' '+f2(W-M-LW)+' '+f2(H-70)+' cm /Im1 Do Q'); }
+  let firmaBin=null;
+  try{ if(typeof o.firma==='string'&&o.firma.indexOf('data:image/jpeg')===0&&o.firma.indexOf('base64,')>0) firmaBin=atob(o.firma.split('base64,')[1]); }catch(e){ firmaBin=null; }
 
   const alg=[o.alerg_meds,o.alerg_foods,o.alerg_insects,o.alerg_env,o.alerg_other,o.alerg_latex==='Sí'?'Latex':''].filter(Boolean).join(', ');
   if(alg){
@@ -805,23 +958,42 @@ function makePDF(o){
   kv('Registrado por',o.actualizadoPor);
   kv('Ultima actualizacion',o.actualizado?new Date(o.actualizado).toLocaleString('es'):'');
 
+  section('Autorizacion de imagen y firma');
+  kv('Alumnos adultos',o.autAdultos||'No especificado');
+  kv('Menores de edad',o.autMenores||'No especificado');
+  kv('DNI del tutor',o.firmaDni);
+  kv('Nombre del tutor',o.firmaNombre);
+  kv('Confirmacion (boton OK)',o.autOk?new Date(o.autOk).toLocaleString('es'):'Pendiente de confirmar');
+  if(firmaBin){
+    const SW=230,SH=SW*200/640;
+    ensure(SH+46);
+    y-=SH+6;
+    c.push('q '+f2(SW)+' 0 0 '+f2(SH)+' '+f2(M)+' '+f2(y)+' cm /Im2 Do Q');
+    txt('Firma del padre, madre o tutor',M,y-14,8.5,true,'0.35 0.35 0.35');
+    y-=30;
+  }
+
   txt('Escanee el codigo para ver los datos esenciales en cualquier celular.',M,32,8,false,'0.4 0.4 0.4');
   pages.push(c.join('\n'));
   if(pages[0]) pages[0]+='\n'+qrPdfCommands(qrInstance,W-M-122,52,120);
 
   const objs=[];
-  const imgObj=3+pages.length*4;
+  const imgs=[];
+  if(logoBin) imgs.push({n:'Im1',b:logoBin,w:192,h:196});
+  if(firmaBin) imgs.push({n:'Im2',b:firmaBin,w:640,h:200});
+  const imgBase=3+pages.length*4;
+  imgs.forEach((im,i)=>im.obj=imgBase+i);
   objs[1]='<< /Type /Catalog /Pages 2 0 R >>';
   objs[2]='<< /Type /Pages /Kids ['+pages.map((_,i)=>(3+i*4)+' 0 R').join(' ')+'] /Count '+pages.length+' >>';
   pages.forEach((ct,i)=>{
     const p=3+i*4, co=4+i*4, f1=5+i*4, fb=6+i*4;
-    const xo=(logoBin&&i===0)?' /XObject << /Im1 '+imgObj+' 0 R >>':'';
+    const xo=imgs.length?' /XObject << '+imgs.map(im=>'/'+im.n+' '+im.obj+' 0 R').join(' ')+' >>':'';
     objs[p]='<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+W+' '+H+'] /Resources << /Font << /F1 '+f1+' 0 R /F2 '+fb+' 0 R >>'+xo+' >> /Contents '+co+' 0 R >>';
     objs[co]='<< /Length '+ct.length+' >>\nstream\n'+ct+'\nendstream';
     objs[f1]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
     objs[fb]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
   });
-  if(logoBin) objs[imgObj]='<< /Type /XObject /Subtype /Image /Width 192 /Height 196 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+logoBin.length+' >>\nstream\n'+logoBin+'\nendstream';
+  imgs.forEach(im=>{ objs[im.obj]='<< /Type /XObject /Subtype /Image /Width '+im.w+' /Height '+im.h+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+im.b.length+' >>\nstream\n'+im.b+'\nendstream'; });
   let pdf='%PDF-1.4\n',off=[0];
   for(let i=1;i<objs.length;i++){ off[i]=pdf.length; pdf+=i+' 0 obj\n'+objs[i]+'\nendobj\n'; }
   const xr=pdf.length;
